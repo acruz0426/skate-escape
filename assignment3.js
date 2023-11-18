@@ -4,46 +4,60 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
-export class Assignment3 extends Scene {
+export class SkateboardingGame extends Scene {
     constructor() {
-        // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
-
-        // At the beginning of our program, load one of each of these shape definitions onto the GPU.
+        // Shapes
         this.shapes = {
-            torus: new defs.Torus(15, 15),
-            torus2: new defs.Torus(3, 15),
-            sphere: new defs.Subdivision_Sphere(4),
-            circle: new defs.Regular_2D_Polygon(1, 15),
-            // TODO:  Fill in as many additional shape instances as needed in this key/value table.
-            //        (Requirement 1)
+            // Existing shapes
+            ...this.shapes,
+            // Add a plane for the road
+            road: new defs.Cube(),
+            // Simple shape for skateboarder
+            skateboarder: new defs.Subdivision_Sphere(4),
+            dashed_line: new defs.Cube(),
+            // Obstacles (example: simple cube)
+            obstacle: new defs.Cube(),
         };
 
-        // *** Materials
+        // Materials
         this.materials = {
-            test: new Material(new defs.Phong_Shader(),
-                {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
-            test2: new Material(new Gouraud_Shader(),
-                {ambient: .4, diffusivity: .6, color: hex_color("#992828")}),
-            ring: new Material(new Ring_Shader()),
-            // TODO:  Fill in as many additional material objects as needed in this key/value table.
-            //        (Requirement 4)
-        }
+            // Existing materials
+            ...this.materials,
+            // Road material
+            road: new Material(new defs.Phong_Shader(),
+                {ambient: 0.3, diffusivity: 0.6, color: hex_color("#808080")}),
+            dashed_line: new Material(new defs.Phong_Shader(),
+                {ambient: 0.3, diffusivity: 0.6, color: hex_color("#FFFF00")}),
+            // Skateboarder material
+            skateboarder: new Material(new defs.Phong_Shader(),
+                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
+            // Obstacle material
+            obstacle: new Material(new defs.Phong_Shader(),
+                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ff0000")}),
+        };
 
-        this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        // Initial camera location (adjust as needed)
+        this.initial_camera_location = Mat4.look_at(
+            vec3(0, 10, 15),  // Position adjusted for your coordinate system
+            vec3(0, 0, -5),  // Pointing West (negative X direction)
+            vec3(0, 1, 0)                // Up is the positive Y direction
+        );
+        
     }
+
 
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
-        this.new_line();
-        this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
-        this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
-        this.new_line();
-        this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
-        this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
-        this.new_line();
-        this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
+        // this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
+        // this.new_line();
+        // this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
+        // this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
+        // this.new_line();
+        // this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
+        // this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
+        // this.new_line();
+        // this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
     }
 
     display(context, program_state) {
@@ -54,24 +68,45 @@ export class Assignment3 extends Scene {
             // Define the global camera and projection matrices, which are stored in program_state.
             program_state.set_camera(this.initial_camera_location);
         }
-
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
 
-        // TODO: Create Planets (Requirement 1)
-        // this.shapes.[XXX].draw([XXX]) // <--example
-
-        // TODO: Lighting (Requirement 2)
+        // Setup lighting
         const light_position = vec4(0, 5, 5, 1);
-        // The parameters of the Light are: position, color, size
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
 
-        // TODO:  Fill in matrix operations and drawing code to draw the solar system scene (Requirements 3 and 4)
-        const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
-        const yellow = hex_color("#fac91a");
-        let model_transform = Mat4.identity();
+        let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));
+        this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
 
-        this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
+        const num_lines = 100; // TODO: Number of lines is hardcoded, but we should make it infinite
+        const line_spacing = 15; // Spacing between lines
+        const line_speed = 20; // Speed of movement
+
+        for (let i = 0; i < num_lines; i++) {
+            // Calculate the initial position of each line segment
+            let initial_z = -line_spacing * i;
+
+            // Calculate the new position based on animation time
+            let z_position = (initial_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
+
+            // Create a transformation for the line segment
+            let line_transform = Mat4.identity()
+                .times(Mat4.translation(0, 1, z_position)) // Position the line segment
+                .times(Mat4.scale(0.1, 0.1, 1)); // Scale to make it look like a line
+
+            // Draw the line segment
+            this.shapes.dashed_line.draw(context, program_state, line_transform, this.materials.dashed_line);
+        }
+
+
+        // Draw the skateboarder
+        let skateboarder_transform = Mat4.identity().times(Mat4.translation(0, 2, 0));
+        this.shapes.skateboarder.draw(context, program_state, skateboarder_transform, this.materials.skateboarder);
+
+        // Draw an obstacle
+        // let obstacle_transform = Mat4.identity().times(Mat4.translation(0, 1, 5));
+        // this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
+
     }
 }
 
