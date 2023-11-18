@@ -44,6 +44,8 @@ export class SkateboardingGame extends Scene {
             vec3(0, 1, 0)                // Up is the positive Y direction
         );
         
+        this.pos = 0;
+        this.jump = 0;
     }
 
 
@@ -58,6 +60,22 @@ export class SkateboardingGame extends Scene {
         // this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
         // this.new_line();
         // this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
+        this.key_triggered_button("Left", ["q"], () => {
+            if (this.pos === 0 || this.pos === 1) {
+                // Shift the skateboarder to the left
+                this.pos -= 1; // Update the position to move left
+            }
+        });
+        this.key_triggered_button("Right", ["e"], () => {
+            if (this.pos === -1 || this.pos === 0) {
+                // Shift the skateboarder to the right 
+                this.pos += 1; // Update the position to move right
+            }
+        });
+        this.key_triggered_button("Jump", ["t"], () => {
+            // Adjust the skateboarder's position upwards for a jump
+            this.jump = 1;
+        });
     }
 
     display(context, program_state) {
@@ -74,6 +92,7 @@ export class SkateboardingGame extends Scene {
         // Setup lighting
         const light_position = vec4(0, 5, 5, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+        let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
 
         let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));
         this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
@@ -98,14 +117,46 @@ export class SkateboardingGame extends Scene {
             this.shapes.dashed_line.draw(context, program_state, line_transform, this.materials.dashed_line);
         }
 
+        let skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, 2, 0));
+        if (this.jump == 1) {
+            const jump_duration = 1; 
+            const jump_height_max = 3;
+            const jump_height_min = 1;
 
+            if (!("start_time" in this)) {
+                this.start_time = t; // Record the start time if not already set
+            }
+
+            let jump_progress = Math.min(t - this.start_time, jump_duration);
+            console.log(this.t - this.start_time);
+            let jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
+
+            skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, jump_height_at_time*2, 0));
+            if (jump_progress >= jump_duration) {
+                this.jump = 0;
+                delete this.start_time;
+            }
+        } else {
+            skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, 2, 0));
+        }
         // Draw the skateboarder
-        let skateboarder_transform = Mat4.identity().times(Mat4.translation(0, 2, 0));
         this.shapes.skateboarder.draw(context, program_state, skateboarder_transform, this.materials.skateboarder);
 
+
+       
         // Draw an obstacle
         // let obstacle_transform = Mat4.identity().times(Mat4.translation(0, 1, 5));
         // this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
+        // Randomly select the x position for the obstacle
+        const obstacle_positions = [0, -2, 2];
+        const random_index = Math.floor(Math.random() * obstacle_positions.length);
+        const obstacle_x = obstacle_positions[random_index];
+
+        // Create a transformation matrix for the obstacle
+        let obstacle_transform = Mat4.identity().times(Mat4.translation(2, 2, -5)).times(Mat4.scale(1, 1, 1));
+
+        // Draw the obstacle cube
+        this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
 
     }
 }
