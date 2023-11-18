@@ -148,16 +148,28 @@ export class SkateboardingGame extends Scene {
         // let obstacle_transform = Mat4.identity().times(Mat4.translation(0, 1, 5));
         // this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
         // Randomly select the x position for the obstacle
-        const obstacle_positions = [0, -2, 2];
-        const random_index = Math.floor(Math.random() * obstacle_positions.length);
-        const obstacle_x = obstacle_positions[random_index];
 
-        // Create a transformation matrix for the obstacle
-        let obstacle_transform = Mat4.identity().times(Mat4.translation(2, 2, -5)).times(Mat4.scale(1, 1, 1));
+        // const obstacle_positions = [-2, 0, 2];
+        // const random_index = Math.floor(Math.random() * obstacle_positions.length);
+        // const obstacle_x = obstacle_positions[random_index];
 
-        // Draw the obstacle cube
-        this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
+        // const obstacle_z_positions = Array.from({ length: 39 }, (_, index) => -100 - index * 50);
+        // const random_index_z = Math.floor(Math.random() * obstacle_z_positions.length);
+        // const obstacle_z = obstacle_z_positions[random_index_z];
 
+        // // Calculate the initial position of each line segment
+        // // let initial_z = -100;
+
+        // // Calculate the new position based on animation time, moves at same pace as lines
+        // let z_position = (obstacle_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
+
+        // // Create a transformation for the line segment
+        // let obstacle_transform = Mat4.identity()
+        //     .times(Mat4.translation(obstacle_x, 2, z_position)) // Position the line segment
+        //     .times(Mat4.scale(0.8, 0.8, 0.8)); // Scale to make it look like a line
+
+        // // Draw the obstacle cube
+        // this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
     }
 }
 
