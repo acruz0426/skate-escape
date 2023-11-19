@@ -18,6 +18,8 @@ export class SkateboardingGame extends Scene {
             dashed_line: new defs.Cube(),
             // Obstacles (example: simple cube)
             obstacle: new defs.Cube(),
+            obstacleJump: new defs.Capped_Cylinder(1, 10, [[0, 2], [0, 1]]),
+            obstacleCone: new defs.Cone_Tip(4, 10, [[0, 2], [0, 1]]),
         };
 
         // Materials
@@ -35,6 +37,10 @@ export class SkateboardingGame extends Scene {
             // Obstacle material
             obstacle: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ff0000")}),
+            obstacleJump: new Material(new defs.Phong_Shader(),
+                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ff0500")}),
+            obstacleCone: new Material(new defs.Phong_Shader(),
+                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ff0500")}),
         };
 
         // Initial camera location (adjust as needed)
@@ -46,6 +52,32 @@ export class SkateboardingGame extends Scene {
         
         this.pos = 0;
         this.jump = 0;
+        this.xval = [];
+        this.zval = [];
+        this.obstacle_type = [];
+
+        for (let i = 0; i < 5000; i++) {
+            const obstacle_positions = [-2, 0, 2];
+            const random_index = Math.floor(Math.random() * obstacle_positions.length);
+            this.xval[i] = obstacle_positions[random_index];
+
+            if (this.xval[i] == -2) {
+                this.zval[i] = -50*i;
+            } else if (this.xval[i] == 0) {
+                this.zval[i] = -80*i;
+            } else {
+                this.zval[i] = -95*i;
+            }
+
+            const random_number = Math.random();
+            if (random_number < 0.1) {
+                this.obstacle_type[i] = 1; // Set as jump obstacle
+            } else if (random_number >= 0.1 && random_number < 0.2) {
+                this.obstacle_type[i] = 2; // Set as cone obstacle
+            } else {
+                this.obstacle_type[i] = 0; // Set as regular obstacle
+            }
+        }
     }
 
 
@@ -119,8 +151,8 @@ export class SkateboardingGame extends Scene {
 
         let skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, 2, 0));
         if (this.jump == 1) {
-            const jump_duration = 1; 
-            const jump_height_max = 3;
+            const jump_duration = 0.5; 
+            const jump_height_max = 2;
             const jump_height_min = 1;
 
             if (!("start_time" in this)) {
@@ -144,32 +176,50 @@ export class SkateboardingGame extends Scene {
 
 
        
-        // Draw an obstacle
-        // let obstacle_transform = Mat4.identity().times(Mat4.translation(0, 1, 5));
-        // this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
-        // Randomly select the x position for the obstacle
+        // const box_spacing = 25;
+        // Obstacle
+        for (let i = 0; i < 50; i++ ) {
+            // const obstacle_positions = [-2, 0, 2];
+            // const random_index = Math.floor(Math.random() * obstacle_positions.length);
+            // const obstacle_x = obstacle_positions[random_index];
 
-        // const obstacle_positions = [-2, 0, 2];
-        // const random_index = Math.floor(Math.random() * obstacle_positions.length);
-        // const obstacle_x = obstacle_positions[random_index];
+            // const obstacle_z_positions = Array.from({ length: 39 }, (_, index) => -100 - index * 50);
+            // const random_index_z = Math.floor(Math.random() * obstacle_z_positions.length);
+            // const obstacle_z = obstacle_z_positions[random_index_z];
 
-        // const obstacle_z_positions = Array.from({ length: 39 }, (_, index) => -100 - index * 50);
-        // const random_index_z = Math.floor(Math.random() * obstacle_z_positions.length);
-        // const obstacle_z = obstacle_z_positions[random_index_z];
+            // let z_position = (obstacle_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
 
-        // // Calculate the initial position of each line segment
-        // // let initial_z = -100;
+            let initial_z = this.zval[i];
 
-        // // Calculate the new position based on animation time, moves at same pace as lines
-        // let z_position = (obstacle_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
+            // Calculate the new position based on animation time
+            let z_position = (initial_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
 
-        // // Create a transformation for the line segment
-        // let obstacle_transform = Mat4.identity()
-        //     .times(Mat4.translation(obstacle_x, 2, z_position)) // Position the line segment
-        //     .times(Mat4.scale(0.8, 0.8, 0.8)); // Scale to make it look like a line
+            if (this.obstacle_type[i] === 0) {
+                let obstacle_transform = Mat4.identity()
+                    .times(Mat4.translation(this.xval[i], 2, z_position)) 
+                    .times(Mat4.scale(0.8, 0.8, 0.8)); 
 
-        // // Draw the obstacle cube
-        // this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
+                    this.shapes.obstacle.draw(context, program_state, obstacle_transform, this.materials.obstacle);
+            } else if (this.obstacle_type[i] === 2) {
+                let obstacle_transform_cone = Mat4.identity()
+                    .times(Mat4.translation(this.xval[i], 2, z_position)) 
+                    .times(Mat4.scale(0.8, 0.8, 0.8)); 
+                
+                    obstacle_transform_cone = obstacle_transform_cone.times(Mat4.rotation(-Math.PI/2, 1, 0, 0));
+
+                this.shapes.obstacleCone.draw(context, program_state, obstacle_transform_cone, this.materials.obstacle);
+            } else {
+                let obstacle_jump_transform = Mat4.identity()
+                    .times(Mat4.translation(this.xval[i], 2, z_position)) 
+                    .times(Mat4.scale(5, 0.8, 0.8)); // Scale the obstacle
+            
+                // Apply a 90-degree rotation about the y-axis
+                obstacle_jump_transform = obstacle_jump_transform.times(Mat4.rotation(Math.PI/2, 0, 1, 0));
+                this.shapes.obstacleJump.draw(context, program_state, obstacle_jump_transform, this.materials.obstacle);
+            }
+            
+        }
+            
     }
 }
 
