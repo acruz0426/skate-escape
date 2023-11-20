@@ -1,4 +1,5 @@
-import {defs, tiny} from './examples/common.js';
+import { defs, tiny } from './utils/common.js';
+import { Shape_From_File } from './utils/helper.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture
@@ -11,15 +12,15 @@ export class SkateboardingGame extends Scene {
         this.shapes = {
             // Existing shapes
             ...this.shapes,
-            // Add a plane for the road
+            // Road
             road: new defs.Cube(),
-            // Simple shape for skateboarder
+            // Skateboarder
             skateboarder: new defs.Subdivision_Sphere(4),
             dashed_line: new defs.Cube(),
-            // Obstacles (example: simple cube)
-            obstacle: new defs.Cube(),
-            obstacleJump: new defs.Capped_Cylinder(1, 10, [[0, 2], [0, 1]]),
-            obstacleCone: new defs.Cone_Tip(4, 10, [[0, 2], [0, 1]]),
+            // Obstacles
+            obstacleFence: new Shape_From_File("assets/objects/fence.obj"),
+            obstacleBench: new Shape_From_File("assets/objects/bench_high_res.obj"),
+            obstacleTrafficCone: new Shape_From_File("assets/objects/traffic_cone.obj"),
         };
 
 
@@ -27,32 +28,29 @@ export class SkateboardingGame extends Scene {
         this.materials = {
             // Existing materials
             ...this.materials,
-            // Road material
-            road: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("./road_texture.png")}),
+            // Road
+            road: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/road_texture.png")}),
             dashed_line: new Material(new defs.Phong_Shader(),
                 {ambient: 0.3, diffusivity: 0.6, color: hex_color("#FFFF00")}),
-            // Skateboarder material
+            // Skateboarder
             skateboarder: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
-            // Obstacle material
-            obstacle: new Material(new defs.Phong_Shader(),
-                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ff0000")}),
-            obstacleJump: new Material(new defs.Phong_Shader(),
-                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ff0500")}),
-            obstacleCone: new Material(new defs.Phong_Shader(),
-                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ff0500")}),
+            // Obstacles
+            obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/wood_fence.jpg")}),
+            obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/wood_bench.png")}),
+            obstacleTrafficCone: new Material(new defs.Phong_Shader(),
+                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#fc7819")}),
         };
 
-        // Initial camera location (adjust as needed)
+        // Initial camera location
         this.initial_camera_location = Mat4.look_at(
-            vec3(0, 10, 15),  // Position adjusted for your coordinate system
-            vec3(0, 0, -5),  // Pointing West (negative X direction)
-            vec3(0, 1, 0)                // Up is the positive Y direction
+            vec3(0, 10, 15), // eye position
+            vec3(0, 0, -5), // at position
+            vec3(0, 1, 0) // up direction
         );
         
         this.pos = 0;
         this.jump = 0;
-
 
         ///////////////////////////// Obstacles /////////////////////////////////
         this.obstacles = [];
@@ -65,12 +63,10 @@ export class SkateboardingGame extends Scene {
         this.max_dist = 20;
         this.min_dist = 15;
         this.speed = 15;
-        
-
 
         for (let i = 0; i < this.num_obstacles; i++) {
             // Generate random x value position (lateral)
-            const obstacle_positions = [-2, 0, 2];
+            const obstacle_positions = [-2.5, 0, 2.5];
             const random_index = Math.floor(Math.random() * obstacle_positions.length);
             this.xval[i] = obstacle_positions[random_index];
 
@@ -96,69 +92,60 @@ export class SkateboardingGame extends Scene {
             // Initialize obstacle transform based on the obstacle type
             if (this.obstacle_type[i] === 0) {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z)) 
-                    .times(Mat4.scale(0.8, 0.8, 0.8)); 
-
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
             } else if (this.obstacle_type[i] === 2) {
-                
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z)) 
-                    .times(Mat4.scale(0.8, 0.8, 0.8)); 
-
-
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
             } else {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z)) 
-                    .times(Mat4.scale(5, 0.8, 0.8)); // Scale the obstacle
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
             }
-            //console.log(this.obstacles[i]);
         }
         //////////////////////////////////////////////////////////////////////////
     }
 
-
+    // Controls
     make_control_panel() {
         this.key_triggered_button("Left", ["q"], () => {
             if (this.pos === 0 || this.pos === 1) {
-                // Shift the skateboarder to the left
+                // Shift skateboarder to the left
                 this.pos -= 1; // Update the position to move left
             }
         });
         this.key_triggered_button("Right", ["e"], () => {
             if (this.pos === -1 || this.pos === 0) {
-                // Shift the skateboarder to the right 
+                // Shift skateboarder to the right 
                 this.pos += 1; // Update the position to move right
             }
         });
         this.key_triggered_button("Jump", ["t"], () => {
-            // Adjust the skateboarder's position upwards for a jump
+            // Adjust skateboarder's position upwards for a jump
             this.jump = 1;
         });
     }
 
     display(context, program_state) {
-        // display():  Called once per frame of animation.
-        // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
+        // Setup program state
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
-            // Define the global camera and projection matrices, which are stored in program_state.
             program_state.set_camera(this.initial_camera_location);
         }
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
 
         // Setup lighting
-        const light_position = vec4(0, 10, 10, 1);
+        const light_position = vec4(0, 20, 20, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
 
         // Setup time variables
         let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
         const dz = (dt * this.speed);
-        // Setup Road
+        
+        // Draw Road
         let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));
         this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
 
-        // Create skater and create jump motion
+        // Create skater and jump motion
         let skateboarder_transform = Mat4.identity().times(Mat4.translation(2.5*this.pos, 2, 0));
         if (this.jump == 1) {
             const jump_duration = 0.75; 
@@ -166,7 +153,8 @@ export class SkateboardingGame extends Scene {
             const jump_height_min = 1;
 
             if (!("start_time" in this)) {
-                this.start_time = t; // Record the start time if not already set
+                // Record the start time if not already set
+                this.start_time = t;
             }
 
             let jump_progress = Math.min(t - this.start_time, jump_duration);
@@ -179,31 +167,27 @@ export class SkateboardingGame extends Scene {
                 delete this.start_time;
             }
         }
+
         // Draw the skateboarder
         this.shapes.skateboarder.draw(context, program_state, skateboarder_transform, this.materials.skateboarder);
 
-        // Obstacle
+        // Draw obstacles
         for (let i = 0; i < this.num_obstacles; i++ ) {
-
-            //Translate object
             this.obstacles[i] = this.obstacles[i].times(Mat4.translation(0, 0, dz));
-            
-            // Draw correct object type
+            // Draw fence obstacle
             if (this.obstacle_type[i] === 0) {
-                // Draw
-                this.shapes.obstacle.draw(context, program_state, this.obstacles[i], this.materials.obstacle);
-            } else if (this.obstacle_type[i] === 2) {
-                // Rotate
-                let rotated_transform = this.obstacles[i].times(Mat4.rotation(-Math.PI/2, 1, 0, 0))
-
-                // Draw
-                this.shapes.obstacleCone.draw(context, program_state, rotated_transform, this.materials.obstacle);
-            } else {
-                // Rotate
-                let rotated_transform = this.obstacles[i].times(Mat4.rotation(Math.PI/2, 0, 1, 0))
-
-                // Draw
-                this.shapes.obstacleJump.draw(context, program_state, rotated_transform, this.materials.obstacle);
+                let transform = this.obstacles[i].times(Mat4.rotation(Math.PI/2, 1, 0, 0)).times(Mat4.scale(0.8, 1.2, 1.2));
+                this.shapes.obstacleFence.draw(context, program_state, transform, this.materials.obstacleFence);
+            }
+            // Draw traffic cone obstacle
+            else if (this.obstacle_type[i] === 2) {
+                let transform = this.obstacles[i].times(Mat4.scale(0.8, 0.8, 0.8));
+                this.shapes.obstacleTrafficCone.draw(context, program_state, transform, this.materials.obstacleTrafficCone);
+            } 
+            // Draw bench obstacle
+            else {
+                let transform = this.obstacles[i].times(Mat4.scale(2.2, 1.8, 1.4));
+                this.shapes.obstacleBench.draw(context, program_state, transform, this.materials.obstacleBench);
             }
 
             // Initialize obstacle transform based on the obstacle type if passed threshold
@@ -229,19 +213,13 @@ export class SkateboardingGame extends Scene {
                 // Position new random object at back of line
                 if (this.obstacle_type[i] === 0) {
                     this.obstacles[i] = Mat4.identity()
-                        .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset)) 
-                        .times(Mat4.scale(0.8, 0.8, 0.8)); 
-    
+                        .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
                 } else if (this.obstacle_type[i] === 2) {
                     this.obstacles[i] = Mat4.identity()
-                        .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset)) 
-                        .times(Mat4.scale(0.8, 0.8, 0.8)); 
-                        
+                        .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
                 } else {
                     this.obstacles[i] = Mat4.identity()
-                        .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset)) 
-                        .times(Mat4.scale(5, 0.8, 0.8)); // Scale the obstacle
-                
+                        .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
                 }
             }
         }
@@ -249,9 +227,7 @@ export class SkateboardingGame extends Scene {
 }
 
 class Gouraud_Shader extends Shader {
-    // This is a Shader using Phong_Shader as template
-    // TODO: Modify the glsl coder here to create a Gouraud Shader (Planet 2)
-
+    
     constructor(num_lights = 2) {
         super();
         this.num_lights = num_lights;
