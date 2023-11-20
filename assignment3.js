@@ -56,6 +56,47 @@ export class SkateboardingGame extends Scene {
         this.zval = [];
         this.obstacle_type = [];
 
+        ///////////////////////////// Road Lines ////////////////////////////////
+        this.road_lines = []; // Array to store road line transforms
+        this.num_lines = 25; // Num of road lines
+        this.line_spacing = 15; // Spacing between lines
+        this.line_speed = 20; // Speed of movement
+        this.road_line_cutoff = 10; // Cutoff to reset road_line to 
+        this.road_line_initial = -this.line_spacing*(this.num_lines-1); // z position to reinitialize road_line transform
+
+        // Initialize road lines in road_strips array
+        for (let i = 0; i < this.num_lines; i++) {
+            let initial_z = -this.line_spacing * i;
+
+            // Create a transformation for the line segment
+            this.road_lines[i] = Mat4.identity()
+                .times(Mat4.translation(0, 1, initial_z)) // Position the line segment
+                .times(Mat4.scale(0.1, 0.1, 1)); // Scale to make it look like a line
+            //console.log(this.road_lines[i])
+        }
+        //////////////////////////////////////////////////////////////////////////
+        
+        this.obstacles = [];
+        this.num_obstacles = 50;
+
+        for (let i = 0; i < this.num_obstacles; i++) {
+            const obstacle_positions = [-2, 0, 2];
+            const random_index = Math.floor(Math.random() * obstacle_positions.length);
+            this.xval[i] = obstacle_positions[random_index];
+
+            if (this.xval[i] == -2) {
+                this.zval[i] = -50*i;
+            } else if (this.xval[i] == 0) {
+                this.zval[i] = -80*i;
+            } else {
+                this.zval[i] = -95*i;
+            }           
+        }
+        
+
+        
+        //for ()
+
         for (let i = 0; i < 5000; i++) {
             const obstacle_positions = [-2, 0, 2];
             const random_index = Math.floor(Math.random() * obstacle_positions.length);
@@ -126,30 +167,35 @@ export class SkateboardingGame extends Scene {
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
 
+
         let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));
         this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
 
-        const num_lines = 100; // TODO: Number of lines is hardcoded, but we should make it infinite
-        const line_spacing = 15; // Spacing between lines
-        const line_speed = 20; // Speed of movement
-
-        for (let i = 0; i < num_lines; i++) {
-            // Calculate the initial position of each line segment
-            let initial_z = -line_spacing * i;
-
+        // Display road lines
+        for (let i = 0; i < this.num_lines; i++) {
+            console.log(this.road_lines[i]);
+            //let initial_z = -this.line_spacing*i;
+            
             // Calculate the new position based on animation time
-            let z_position = (initial_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
+            let dz = (program_state.animation_delta_time / 1000 * (this.line_speed));
 
-            // Create a transformation for the line segment
-            let line_transform = Mat4.identity()
-                .times(Mat4.translation(0, 1, z_position)) // Position the line segment
-                .times(Mat4.scale(0.1, 0.1, 1)); // Scale to make it look like a line
+            // Translate road lines by z_position
+            this.road_lines[i] = this.road_lines[i].times(Mat4.translation(0, 0, dz)); // Position the line segment
 
             // Draw the line segment
-            this.shapes.dashed_line.draw(context, program_state, line_transform, this.materials.dashed_line);
+            //if (this.road_lines[i].z > this.road_line_cutoff)
+            this.shapes.dashed_line.draw(context, program_state, this.road_lines[i], this.materials.dashed_line);
+
+            // Update to back of line if passed Cutoff
+            if (this.road_lines[i][2][3] > this.line_spacing) {
+                this.road_lines[i] = Mat4.identity()
+                .times(Mat4.translation(0, 1, this.road_lines[(i+this.num_lines-1)%this.num_lines][2][3]+dz-this.line_spacing)) // Position the line segment
+                .times(Mat4.scale(0.1, 0.1, 1)); // Scale to make it look like a line
+            }         
         }
 
         let skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, 2, 0));
+        
         if (this.jump == 1) {
             const jump_duration = 0.5; 
             const jump_height_max = 2;
@@ -160,7 +206,7 @@ export class SkateboardingGame extends Scene {
             }
 
             let jump_progress = Math.min(t - this.start_time, jump_duration);
-            console.log(this.t - this.start_time);
+            //console.log(this.t - this.start_time);
             let jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
 
             skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, jump_height_at_time*2, 0));
@@ -178,7 +224,7 @@ export class SkateboardingGame extends Scene {
        
         // const box_spacing = 25;
         // Obstacle
-        for (let i = 0; i < 50; i++ ) {
+        /*for (let i = 0; i < 50; i++ ) {
             // const obstacle_positions = [-2, 0, 2];
             // const random_index = Math.floor(Math.random() * obstacle_positions.length);
             // const obstacle_x = obstacle_positions[random_index];
@@ -218,7 +264,7 @@ export class SkateboardingGame extends Scene {
                 this.shapes.obstacleJump.draw(context, program_state, obstacle_jump_transform, this.materials.obstacle);
             }
             
-        }
+        }*/
             
     }
 }
