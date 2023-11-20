@@ -1,7 +1,7 @@
 import {defs, tiny} from './examples/common.js';
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture
 } = tiny;
 
 export class SkateboardingGame extends Scene {
@@ -22,13 +22,13 @@ export class SkateboardingGame extends Scene {
             obstacleCone: new defs.Cone_Tip(4, 10, [[0, 2], [0, 1]]),
         };
 
+
         // Materials
         this.materials = {
             // Existing materials
             ...this.materials,
             // Road material
-            road: new Material(new defs.Phong_Shader(),
-                {ambient: 0.3, diffusivity: 0.6, color: hex_color("#808080")}),
+            road: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("./road_texture.png")}),
             dashed_line: new Material(new defs.Phong_Shader(),
                 {ambient: 0.3, diffusivity: 0.6, color: hex_color("#FFFF00")}),
             // Skateboarder material
@@ -57,11 +57,11 @@ export class SkateboardingGame extends Scene {
         this.obstacle_type = [];
 
         for (let i = 0; i < 5000; i++) {
-            const obstacle_positions = [-2, 0, 2];
+            const obstacle_positions = [-2.5, 0, 2.5];
             const random_index = Math.floor(Math.random() * obstacle_positions.length);
             this.xval[i] = obstacle_positions[random_index];
 
-            if (this.xval[i] == -2) {
+            if (this.xval[i] == -2.5) {
                 this.zval[i] = -50*i;
             } else if (this.xval[i] == 0) {
                 this.zval[i] = -80*i;
@@ -82,16 +82,6 @@ export class SkateboardingGame extends Scene {
 
 
     make_control_panel() {
-        // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        // this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
-        // this.new_line();
-        // this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
-        // this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
-        // this.new_line();
-        // this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
-        // this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
-        // this.new_line();
-        // this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
         this.key_triggered_button("Left", ["q"], () => {
             if (this.pos === 0 || this.pos === 1) {
                 // Shift the skateboarder to the left
@@ -122,7 +112,7 @@ export class SkateboardingGame extends Scene {
             Math.PI / 4, context.width / context.height, .1, 1000);
 
         // Setup lighting
-        const light_position = vec4(0, 5, 5, 1);
+        const light_position = vec4(0, 10, 10, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
 
@@ -133,26 +123,10 @@ export class SkateboardingGame extends Scene {
         const line_spacing = 15; // Spacing between lines
         const line_speed = 20; // Speed of movement
 
-        for (let i = 0; i < num_lines; i++) {
-            // Calculate the initial position of each line segment
-            let initial_z = -line_spacing * i;
-
-            // Calculate the new position based on animation time
-            let z_position = (initial_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
-
-            // Create a transformation for the line segment
-            let line_transform = Mat4.identity()
-                .times(Mat4.translation(0, 1, z_position)) // Position the line segment
-                .times(Mat4.scale(0.1, 0.1, 1)); // Scale to make it look like a line
-
-            // Draw the line segment
-            this.shapes.dashed_line.draw(context, program_state, line_transform, this.materials.dashed_line);
-        }
-
-        let skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, 2, 0));
+        let skateboarder_transform = Mat4.identity().times(Mat4.translation(2.5*this.pos, 2, 0));
         if (this.jump == 1) {
-            const jump_duration = 0.5; 
-            const jump_height_max = 2;
+            const jump_duration = 0.75; 
+            const jump_height_max = 3;
             const jump_height_min = 1;
 
             if (!("start_time" in this)) {
@@ -163,32 +137,17 @@ export class SkateboardingGame extends Scene {
             console.log(this.t - this.start_time);
             let jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
 
-            skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, jump_height_at_time*2, 0));
+            skateboarder_transform = Mat4.identity().times(Mat4.translation(2.5*this.pos, jump_height_at_time*2, 0));
             if (jump_progress >= jump_duration) {
                 this.jump = 0;
                 delete this.start_time;
             }
-        } else {
-            skateboarder_transform = Mat4.identity().times(Mat4.translation(2*this.pos, 2, 0));
         }
         // Draw the skateboarder
         this.shapes.skateboarder.draw(context, program_state, skateboarder_transform, this.materials.skateboarder);
 
-
-       
-        // const box_spacing = 25;
         // Obstacle
         for (let i = 0; i < 50; i++ ) {
-            // const obstacle_positions = [-2, 0, 2];
-            // const random_index = Math.floor(Math.random() * obstacle_positions.length);
-            // const obstacle_x = obstacle_positions[random_index];
-
-            // const obstacle_z_positions = Array.from({ length: 39 }, (_, index) => -100 - index * 50);
-            // const random_index_z = Math.floor(Math.random() * obstacle_z_positions.length);
-            // const obstacle_z = obstacle_z_positions[random_index_z];
-
-            // let z_position = (obstacle_z + program_state.animation_time / 1000 * line_speed) % (num_lines * line_spacing);
-
             let initial_z = this.zval[i];
 
             // Calculate the new position based on animation time

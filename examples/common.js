@@ -721,6 +721,15 @@ const Phong_Shader = defs.Phong_Shader =
 
 const Textured_Phong = defs.Textured_Phong =
     class Textured_Phong extends Phong_Shader {
+        constructor(num_lights = 2) {
+            super();
+            this.num_lights = num_lights;
+            this.uniforms = {
+                // Other uniforms
+                animation_time: 0,
+                // ...
+            };
+        }        
         // **Textured_Phong** is a Phong Shader extended to addditionally decal a
         // texture image over the drawn shape, lined up according to the texture
         // coordinates that are stored at each shape vertex.
@@ -734,6 +743,8 @@ const Textured_Phong = defs.Textured_Phong =
                 
                 uniform mat4 model_transform;
                 uniform mat4 projection_camera_model_transform;
+                uniform float animation_time;
+
         
                 void main(){                                                                   
                     // The vertex's final resting place (in NDCS):
@@ -742,7 +753,7 @@ const Textured_Phong = defs.Textured_Phong =
                     N = normalize( mat3( model_transform ) * normal / squared_scale);
                     vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
                     // Turn the per-vertex texture coordinate into an interpolated variable.
-                    f_tex_coord = texture_coord;
+                    f_tex_coord = texture_coord - vec2(0.0, animation_time * 0.05);
                   } `;
         }
 
@@ -775,6 +786,10 @@ const Textured_Phong = defs.Textured_Phong =
                 // For this draw, use the texture image from correct the GPU buffer:
                 material.texture.activate(context);
             }
+
+            if (gpu_addresses.animation_time !== undefined) {
+                context.uniform1f(gpu_addresses.animation_time, gpu_state.animation_time / 1000);
+            }        
         }
     }
 
