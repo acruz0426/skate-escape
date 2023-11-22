@@ -15,7 +15,8 @@ export class SkateboardingGame extends Scene {
             // Road
             road: new defs.Cube(),
             // Skateboarder
-            skateboarder: new defs.Subdivision_Sphere(4),
+            // skateboarder: new defs.Subdivision_Sphere(4),
+            skateboarder: new Shape_From_File("assets/objects/skateMan.obj"),
             dashed_line: new defs.Cube(),
             // Obstacles
             obstacleFence: new Shape_From_File("assets/objects/fence.obj"),
@@ -169,6 +170,7 @@ export class SkateboardingGame extends Scene {
         }
 
         // Draw the skateboarder
+        skateboarder_transform = skateboarder_transform.times(Mat4.translation(0, 1, 0)).times(Mat4.rotation(-Math.PI/2, 1, 0, 0)).times(Mat4.rotation(Math.PI/2, 0, 0, 1));
         this.shapes.skateboarder.draw(context, program_state, skateboarder_transform, this.materials.skateboarder);
 
         // Draw obstacles
