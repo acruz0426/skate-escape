@@ -65,6 +65,9 @@ export class SkateboardingGame extends Scene {
         this.min_dist = 15;
         this.speed = 15;
 
+        this.collision_threshold = 2;
+        this.collision_detected = false;
+
         for (let i = 0; i < this.num_obstacles; i++) {
             // Generate random x value position (lateral)
             const obstacle_positions = [-2.5, 0, 2.5];
@@ -159,7 +162,6 @@ export class SkateboardingGame extends Scene {
             }
 
             let jump_progress = Math.min(t - this.start_time, jump_duration);
-            console.log(this.t - this.start_time);
             let jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
 
             skateboarder_transform = Mat4.identity().times(Mat4.translation(2.5*this.pos, jump_height_at_time*2, 0));
@@ -172,6 +174,32 @@ export class SkateboardingGame extends Scene {
         // Draw the skateboarder
         skateboarder_transform = skateboarder_transform.times(Mat4.translation(0, 1, 0)).times(Mat4.rotation(-Math.PI/2, 1, 0, 0)).times(Mat4.rotation(Math.PI/2, 0, 0, 1));
         this.shapes.skateboarder.draw(context, program_state, skateboarder_transform, this.materials.skateboarder);
+
+        const skateboarder_position = skateboarder_transform.times(vec4(0, 0, 0, 1));
+        for (let i = 0; i < this.num_obstacles; i++) {
+            const obstacle_position = this.obstacles[i].times(vec4(0, 0, 0, 1));
+            const distance = Math.sqrt(
+                Math.pow(skateboarder_position[0] - obstacle_position[0], 2) +
+                Math.pow(skateboarder_position[1] - obstacle_position[1], 2) +
+                Math.pow(skateboarder_position[2] - obstacle_position[2], 2)
+            );
+            if (distance < this.collision_threshold) {
+                console.log(`Collision with obstacle ${i} detected!`);
+                this.collision_detected = true;
+                this.materials.road.shader.uniforms.stop_texture_update = 1; // Stop texture update
+
+                // // Call update_GPU to synchronize the change with the GPU
+                // this.materials.road.shader.update_GPU(
+                //     context, 
+                //     this.materials.road.shader.gpu_addresses, 
+                //     context.globals.graphics_state, 
+                //     Mat4.identity(), // Pass an appropriate model_transform here
+                //     this.materials.road // Pass the material
+                // );
+                this.speed = 0;
+                break;
+            }
+        }
 
         // Draw obstacles
         for (let i = 0; i < this.num_obstacles; i++ ) {
@@ -188,7 +216,7 @@ export class SkateboardingGame extends Scene {
             } 
             // Draw bench obstacle
             else {
-                let transform = this.obstacles[i].times(Mat4.scale(2.2, 1.8, 1.4));
+                let transform = this.obstacles[i].times(Mat4.scale(2.2, 1.2, 1.4));
                 this.shapes.obstacleBench.draw(context, program_state, transform, this.materials.obstacleBench);
             }
 

@@ -727,6 +727,7 @@ const Textured_Phong = defs.Textured_Phong =
             this.uniforms = {
                 // Other uniforms
                 animation_time: 0,
+                stop_texture_update: 0,
                 // ...
             };
         }        
@@ -744,6 +745,8 @@ const Textured_Phong = defs.Textured_Phong =
                 uniform mat4 model_transform;
                 uniform mat4 projection_camera_model_transform;
                 uniform float animation_time;
+                uniform int stop_texture_update; // Integer type
+
 
         
                 void main(){                                                                   
@@ -753,7 +756,11 @@ const Textured_Phong = defs.Textured_Phong =
                     N = normalize( mat3( model_transform ) * normal / squared_scale);
                     vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
                     // Turn the per-vertex texture coordinate into an interpolated variable.
-                    f_tex_coord = texture_coord - vec2(0.0, animation_time * 0.05);
+                    if (stop_texture_update == 0) {
+                        f_tex_coord = texture_coord - vec2(0.0, animation_time * 0.05);
+                    } else {
+                        f_tex_coord = texture_coord; // Maintain original texture coordinates
+                    }
                   } `;
         }
 
