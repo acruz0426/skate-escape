@@ -117,21 +117,91 @@ export class SkateboardingGame extends Scene {
     // Controls
     make_control_panel() {
         this.key_triggered_button("Left", ["q"], () => {
-            if (this.pos === 0 || this.pos === 1) {
+            if (!this.collision_detected && (this.pos === 0 || this.pos === 1)) {
                 // Shift skateboarder to the left
                 this.pos -= 1; // Update the position to move left
             }
         });
         this.key_triggered_button("Right", ["e"], () => {
-            if (this.pos === -1 || this.pos === 0) {
+            if (!this.collision_detected && (this.pos === -1 || this.pos === 0)) {
                 // Shift skateboarder to the right 
                 this.pos += 1; // Update the position to move right
             }
         });
         this.key_triggered_button("Jump", ["t"], () => {
             // Adjust skateboarder's position upwards for a jump
-            this.jump = 1;
+            if (!this.collision_detected) {
+                this.jump = 1;
+            }
         });
+        this.key_triggered_button("Restart", ["g"], () => {
+            // Restart the game
+            this.restartGame();
+        });
+    }
+
+    gameOver(score) {
+        document.getElementById("game-over-screen").style.display = "flex";
+        document.getElementById("score-container").style.display = "none";
+        document.getElementById('final-score').textContent = 'Your Score: ' + score;
+    }
+    
+    restartGame() {
+        console.log("Resetting shader uniforms");
+        document.getElementById("game-over-screen").style.display = "none";
+        document.getElementById("score-container").style.display = "block";
+        this.pos = 0;
+        this.jump = 0;
+        this.score = 0;
+        this.speed = 15;
+        this.collision_detected = false;
+
+        // Reset obstacles
+        for (let i = 0; i < this.num_obstacles; i++) {
+            // Generate random x value position (lateral)
+            const obstacle_positions = [-2.5, 0, 2.5];
+            const random_index = Math.floor(Math.random() * obstacle_positions.length);
+            this.xval[i] = obstacle_positions[random_index];
+
+            // Generate random z value position (depth)
+            if (i == 0) {
+                this.zval[0] = -80-Math.floor(Math.random() * (this.max_dist - this.min_dist) + this.min_dist);
+            }
+            else {
+                this.zval[i] = this.zval[i-1]-Math.floor(Math.random() * (this.max_dist - this.min_dist) + this.min_dist);
+            }
+            // Generate random obstacle type
+            const random_number = Math.random();
+            if (random_number < 0.1) {
+                this.obstacle_type[i] = 1; // Set as jump obstacle
+            } else if (random_number >= 0.1 && random_number < 0.2) {
+                this.obstacle_type[i] = 2; // Set as cone obstacle
+            } else {
+                this.obstacle_type[i] = 0; // Set as regular obstacle
+            }
+
+            let initial_z = this.zval[i];
+
+            // Initialize obstacle transform based on the obstacle type
+            if (this.obstacle_type[i] === 0) {
+                this.obstacles[i] = Mat4.identity()
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+            } else if (this.obstacle_type[i] === 2) {
+                this.obstacles[i] = Mat4.identity()
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+            } else {
+                this.obstacles[i] = Mat4.identity()
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+            }
+        }
+
+        // Start texture update
+        this.materials.road.shader.uniforms.stop_texture_update = 0;
+        this.materials.road.shader.uniforms.scale_factor = 0.05;
+        
+        // Call update gpu
+        this.materials.road.shader.update_GPU(
+            this.context, this.materials.road.shader.gpu_addresses, this.context.globals.graphics_state, Mat4.identity(), this.materials.road);
     }
 
     display(context, program_state) {
@@ -152,7 +222,7 @@ export class SkateboardingGame extends Scene {
         const dz = (dt * this.speed);
 
         // Make game speed up over time
-        if (this.speed < 50 && !this.collision_detected){
+        if (this.speed < 50 && !this.collision_detected && this.speed > 0){
             this.speed += 0.05;
             this.materials.road.shader.uniforms.scale_factor = this.speed/400;
         }
@@ -162,6 +232,11 @@ export class SkateboardingGame extends Scene {
             this.update_score(dt * this.speed);
             document.getElementById("score").innerHTML = Math.floor(this.score);
         }
+        if (this.collision_detected) {
+            this.gameOver(Math.floor(this.score));
+        }
+        // In your display method, before drawing the road
+        // this.materials.road.shader.update_GPU(context, this.materials.road.shader.gpu_addresses, program_state, road_transform, this.materials.road);
 
         // Draw Road
         let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));

@@ -789,6 +789,9 @@ const Textured_Phong = defs.Textured_Phong =
             // update_GPU(): Add a little more to the base class's version of this method.
             super.update_GPU(context, gpu_addresses, gpu_state, model_transform, material);
 
+            console.log("Shader Uniforms:", this.uniforms.stop_texture_update, this.uniforms.scale_factor);
+
+
             if (material.texture && material.texture.ready) {
                 // Select texture unit 0 for the fragment shader Sampler2D uniform called "texture":
                 context.uniform1i(gpu_addresses.texture, 0);
