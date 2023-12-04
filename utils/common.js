@@ -728,6 +728,7 @@ const Textured_Phong = defs.Textured_Phong =
                 // Other uniforms
                 animation_time: 0,
                 stop_texture_update: 0,
+                scale_factor: 0.05
                 // ...
             };
         }        
@@ -746,6 +747,7 @@ const Textured_Phong = defs.Textured_Phong =
                 uniform mat4 projection_camera_model_transform;
                 uniform float animation_time;
                 uniform int stop_texture_update; // Integer type
+                uniform float scale_factor;
 
 
         
@@ -757,7 +759,7 @@ const Textured_Phong = defs.Textured_Phong =
                     vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
                     // Turn the per-vertex texture coordinate into an interpolated variable.
                     if (stop_texture_update == 0) {
-                        f_tex_coord = texture_coord - vec2(0.0, animation_time * 0.05);
+                        f_tex_coord = texture_coord - vec2(0.0, animation_time * scale_factor);
                     } else {
                         f_tex_coord = texture_coord; // Maintain original texture coordinates
                     }
@@ -796,7 +798,17 @@ const Textured_Phong = defs.Textured_Phong =
 
             if (gpu_addresses.animation_time !== undefined) {
                 context.uniform1f(gpu_addresses.animation_time, gpu_state.animation_time / 1000);
-            }        
+            }
+
+            if (gpu_addresses.stop_texture_update !== undefined) {
+                context.uniform1i(gpu_addresses.stop_texture_update, this.uniforms.stop_texture_update);
+            }
+
+            if (gpu_addresses.scale_factor !== undefined) {
+                context.uniform1f(gpu_addresses.scale_factor, this.uniforms.scale_factor);
+            }
+
+        
         }
     }
 

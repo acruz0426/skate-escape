@@ -7,11 +7,25 @@
     <meta charset="UTF-8"/>
     <link href="assets/fav.ico" rel="icon">
     <title>Tiny Graphics</title>
+    <style>
+        .score-container {
+            position: relative;
+            top: 50px;
+            left: 25px;
+            z-index: 1;
+            color: white;
+            font-size: 24px;
+            font-family: 'Arial', sans-serif;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; /* Text shadow for outline effect */
+        }
+    </style>
 </head>
 <body style="background: White">
-<!-- Begin typing your web page here. -->
-<!-- The following code embeds a WebGL canvas panel, loads certain scene(s), and displays panel(s) of their controls.-->
-<div class="canvas-widget" id="main-canvas"></div>
+<div class="canvas-widget" id="main-canvas">
+    <div id="score-container" class="score-container">
+        Distance: <span id="score"></span>m
+    </div>
+</div>
 <script type=module>
     // ********************* THE ENTRY POINT OF YOUR WHOLE PROGRAM STARTS HERE *********************
     // Indicate which element on the page you want the Canvas_Widget to replace with a 3D WebGL area:

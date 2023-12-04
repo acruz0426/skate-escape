@@ -52,6 +52,7 @@ export class SkateboardingGame extends Scene {
         
         this.pos = 0;
         this.jump = 0;
+        this.score = 0;
 
         ///////////////////////////// Obstacles /////////////////////////////////
         this.obstacles = [];
@@ -60,7 +61,7 @@ export class SkateboardingGame extends Scene {
         this.obstacle_type = [];
         this.num_obstacles = 50;
         this.obstacle_initial = -150;
-        this.obstacle_cutoff = 10;
+        this.obstacle_cutoff = 25;
         this.max_dist = 20;
         this.min_dist = 15;
         this.speed = 15;
@@ -108,6 +109,11 @@ export class SkateboardingGame extends Scene {
         //////////////////////////////////////////////////////////////////////////
     }
 
+    update_score(dt) {
+        // Increment the score based on time or other factors
+        this.score += dt; // For example, increment score by the delta time
+    }
+
     // Controls
     make_control_panel() {
         this.key_triggered_button("Left", ["q"], () => {
@@ -144,7 +150,19 @@ export class SkateboardingGame extends Scene {
         // Setup time variables
         let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
         const dz = (dt * this.speed);
-        
+
+        // Make game speed up over time
+        if (this.speed < 50 && !this.collision_detected){
+            this.speed += 0.05;
+            this.materials.road.shader.uniforms.scale_factor = this.speed/400;
+        }
+
+        // Update score
+        if (!this.collision_detected) {
+            this.update_score(dt * this.speed);
+            document.getElementById("score").innerHTML = Math.floor(this.score);
+        }
+
         // Draw Road
         let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));
         this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
@@ -187,15 +205,6 @@ export class SkateboardingGame extends Scene {
                 console.log(`Collision with obstacle ${i} detected!`);
                 this.collision_detected = true;
                 this.materials.road.shader.uniforms.stop_texture_update = 1; // Stop texture update
-
-                // // Call update_GPU to synchronize the change with the GPU
-                // this.materials.road.shader.update_GPU(
-                //     context, 
-                //     this.materials.road.shader.gpu_addresses, 
-                //     context.globals.graphics_state, 
-                //     Mat4.identity(), // Pass an appropriate model_transform here
-                //     this.materials.road // Pass the material
-                // );
                 this.speed = 0;
                 break;
             }
