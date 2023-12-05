@@ -90,7 +90,7 @@ export class SkateboardingGame extends Scene {
             const random_number = Math.random();
             if (random_number < 0.25) {
                 this.obstacle_type[i] = 1; // Set as jump obstacle
-            } else if (random_number >= 0.25 && random_number < 2) {
+            } else if (random_number >= 0.25 && random_number < .65) {
                 this.obstacle_type[i] = 2; // Set as cone obstacle
             } else {
                 this.obstacle_type[i] = 0; // Set as regular obstacle
