@@ -14,6 +14,7 @@ export class SkateboardingGame extends Scene {
             ...this.shapes,
             // Road
             road: new defs.Cube(),
+            sidewalk: new defs.Cube(),
             // Skateboarder
             // skateboarder: new defs.Subdivision_Sphere(4),
             skateboarder: new Shape_From_File("assets/objects/skateMan.obj"),
@@ -22,6 +23,8 @@ export class SkateboardingGame extends Scene {
             obstacleFence: new Shape_From_File("assets/objects/fence.obj"),
             obstacleBench: new Shape_From_File("assets/objects/bench_high_res.obj"),
             obstacleTrafficCone: new Shape_From_File("assets/objects/traffic_cone.obj"),
+            obstacleBus: new Shape_From_File("assets/objects/bus.obj"),
+            building: new defs.Cube(),
         };
 
 
@@ -31,6 +34,7 @@ export class SkateboardingGame extends Scene {
             ...this.materials,
             // Road
             road: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/road_texture.png")}),
+            sidewalk: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/sidewalk.png")}),
             dashed_line: new Material(new defs.Phong_Shader(),
                 {ambient: 0.3, diffusivity: 0.6, color: hex_color("#FFFF00")}),
             // Skateboarder
@@ -41,6 +45,11 @@ export class SkateboardingGame extends Scene {
             obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/wood_fence.jpg")}),
             obstacleTrafficCone: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#fc7819")}),
+            obstacleBus: new Material(new defs.Textured_Phong(), {ambient: .7, diffusivity: 0.6}),
+            buildingOffice: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/office.png")}),
+            building1: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building1.jpg")}),
+            building2: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building2.jpg")}),
+            building3: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building3.jpg")}),
         };
 
         // Initial camera location
@@ -75,7 +84,7 @@ export class SkateboardingGame extends Scene {
 
         for (let i = 0; i < this.num_obstacles; i++) {
             // Generate random x value position (lateral)
-            const obstacle_positions = [-2.5, 0, 2.5];
+            const obstacle_positions = [4, 0, 4];
             const random_index = Math.floor(Math.random() * obstacle_positions.length);
             this.xval[i] = obstacle_positions[random_index];
 
@@ -111,6 +120,49 @@ export class SkateboardingGame extends Scene {
             }
         }
         //////////////////////////////////////////////////////////////////////////
+
+        ///////////////////////////// Buildings //////////////////////////////////
+        this.buildings_l = [];
+        this.buildings_r = [];
+        this.build_zval = [];
+        this.build_type = [];
+        this.num_buildings = 50;
+        this.building_initial = -150;
+        this.building_cutoff = 2;
+        this.building_r_type = [];
+        this.building_l_type = [];
+
+
+        for (let i = 0; i < this.num_buildings; i++) {
+            // Position buildings equidistant from next building
+            this.buildings_l[i] = Mat4.identity().times(Mat4.scale(5, 5, 6)).times(Mat4.translation(-3.7, 1.2, -2-2.1*i));
+            this.buildings_r[i] = Mat4.identity().times(Mat4.scale(5, 5, 6)).times(Mat4.translation(3.7, 1.2, -2-2.1*i));
+
+            // Generate random building type right side
+            const random_number = Math.random();
+            if (random_number < 0.25) {
+                this.building_r_type[i] = 0; // Set as office
+            } else if (random_number >= 0.25 && random_number < .50) {
+                this.building_r_type[i] = 1; // Set as building 1
+            } else if (random_number >= .50 && random_number < .75) {
+                this.building_r_type[i] = 2; // Set as building 2
+            } else {
+                this.building_r_type[i] = 3; // Set as building 3
+            }
+
+            // Generate random building type left side
+            const random_number2 = Math.random();
+            if (random_number2 < 0.25) {
+                this.building_l_type[i] = 0; // Set as office
+            } else if (random_number2 >= 0.25 && random_number2 < .50) {
+                this.building_l_type[i] = 1; // Set as building 1
+            } else if (random_number2 >= .50 && random_number2 < .75) {
+                this.building_l_type[i] = 2; // Set as building 2
+            } else {
+                this.building_l_type[i] = 3; // Set as building 3
+            }
+            //////////////////////////////////////////////////////////////////////////
+        }
     }
 
     update_score(dt) {
@@ -169,7 +221,7 @@ export class SkateboardingGame extends Scene {
         // Reset obstacles
         for (let i = 0; i < this.num_obstacles; i++) {
             // Generate random x value position (lateral)
-            const obstacle_positions = [-2.5, 0, 2.5];
+            const obstacle_positions = [-4, 0, 4];
             const random_index = Math.floor(Math.random() * obstacle_positions.length);
             this.xval[i] = obstacle_positions[random_index];
 
@@ -212,7 +264,7 @@ export class SkateboardingGame extends Scene {
     }
 
     display(context, program_state) {
-        this.backgroundMusic.play();
+        //this.backgroundMusic.play();
         // Setup program state
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
@@ -237,7 +289,8 @@ export class SkateboardingGame extends Scene {
             
 
         }
-        this.materials.road.shader.uniforms.texture_offset += this.speed * dt/280; 
+        this.materials.road.shader.uniforms.texture_offset += this.speed * dt/280;
+        this.materials.sidewalk.shader.uniforms.texture_offset += 20*this.speed * dt/280;
 
         // Update score
         if (!this.collision_detected) {
@@ -251,11 +304,116 @@ export class SkateboardingGame extends Scene {
         }
 
         // Draw Road
-        let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 250));
+        let road_transform = Mat4.identity().times(Mat4.scale(7, 1, 250));
         this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
 
+        // Draw sidewalk
+        let sidewalk_transform_l = Mat4.identity().times(Mat4.scale(4, 1, 10)).times(Mat4.translation(-3, 0, 0));
+        let sidewalk_transform_r = Mat4.identity().times(Mat4.scale(4, 1, 10)).times(Mat4.translation(3, 0, 0));
+        for (let i = 0; i < 13; i++)
+        {
+            this.shapes.sidewalk.draw(context, program_state, sidewalk_transform_l, this.materials.sidewalk);
+            this.shapes.sidewalk.draw(context, program_state, sidewalk_transform_r, this.materials.sidewalk);
+            sidewalk_transform_l = sidewalk_transform_l.times(Mat4.translation(0, 0, -2));
+            sidewalk_transform_r = sidewalk_transform_r.times(Mat4.translation(0, 0, -2));
+        }
+
+        // Draw buildings left side
+        for (let i = 0; i < this.num_buildings; i++ ) {
+            this.buildings_l[i] = this.buildings_l[i].times(Mat4.scale(1, 1, 1/6));
+            this.buildings_l[i] = this.buildings_l[i].times(Mat4.translation(0, 0, dz));
+            this.buildings_l[i] = this.buildings_l[i].times(Mat4.scale(1,1,6));
+            // Draw office
+            if (this.building_l_type[i] === 0) {
+                this.shapes.building.draw(context, program_state, this.buildings_l[i], this.materials.buildingOffice);
+            }
+            // Draw building 1
+            else if (this.building_l_type[i] === 1) {
+                this.shapes.building.draw(context, program_state, this.buildings_l[i], this.materials.building1);
+            } 
+            // Draw building 2
+            else if (this.building_l_type[i] === 2) {
+                this.shapes.building.draw(context, program_state, this.buildings_l[i], this.materials.building2);
+            }
+            // Draw building 3
+            else {
+                this.shapes.building.draw(context, program_state, this.buildings_l[i], this.materials.building3);
+            }
+
+            // Initialize building transform based on the building type if passed threshold
+            if (this.buildings_l[i][2][3] > this.building_cutoff) {                
+                
+                // Generate random building type left side
+                const random_number2 = Math.random();
+                if (random_number2 < 0.25) {
+                    this.building_l_type[i] = 0; // Set as office
+                } else if (random_number2 >= 0.25 && random_number2 < .50) {
+                    this.building_l_type[i] = 1; // Set as building 1
+                } else if (random_number2 >= .50 && random_number2 < .75) {
+                    this.building_l_type[i] = 2; // Set as building 2
+                } else {
+                    this.building_l_type[i] = 3; // Set as building 3
+                }
+
+                // Position building at back of line
+                this.buildings_l[i] = Mat4.identity().times(Mat4.scale(5, 5, 6)).times(Mat4.translation(-3.7, 1.2, -2.1))
+                this.buildings_l[i] = this.buildings_l[i].times(Mat4.scale(1, 1, 1/6));
+                this.buildings_l[i] = this.buildings_l[i].times(Mat4.translation(0, 0, this.buildings_l[(i+this.num_buildings-1)%this.num_buildings][2][3]+dz));
+                this.buildings_l[i] = this.buildings_l[i].times(Mat4.scale(1,1,6));
+            }
+        }
+
+        // Draw buildings right side
+        for (let i = 0; i < this.num_buildings; i++ ) {
+            this.buildings_r[i] = this.buildings_r[i].times(Mat4.scale(1,1,1/6));
+            this.buildings_r[i] = this.buildings_r[i].times(Mat4.translation(0, 0, dz));
+            this.buildings_r[i] = this.buildings_r[i].times(Mat4.scale(1,1,6));
+
+            // Draw office
+            if (this.building_r_type[i] === 0) {
+                this.shapes.building.draw(context, program_state, this.buildings_r[i], this.materials.buildingOffice);
+            }
+            // Draw building 1
+            else if (this.building_r_type[i] === 1) {
+                this.shapes.building.draw(context, program_state, this.buildings_r[i], this.materials.building1);
+            } 
+            // Draw building 2
+            else if (this.building_r_type[i] === 2) {
+                this.shapes.building.draw(context, program_state, this.buildings_r[i], this.materials.building2);
+            }
+            // Draw building 3
+            else {
+                this.shapes.building.draw(context, program_state, this.buildings_r[i], this.materials.building3);
+            }
+
+            // Initialize building transform based on the building type if passed threshold
+            if (this.buildings_r[i][2][3] > this.building_cutoff) {                
+                
+                // Generate random building type left side
+                const random_number2 = Math.random();
+                if (random_number2 < 0.25) {
+                    this.building_r_type[i] = 0; // Set as office
+                } else if (random_number2 >= 0.25 && random_number2 < .50) {
+                    this.building_r_type[i] = 1; // Set as building 1
+                } else if (random_number2 >= .50 && random_number2 < .75) {
+                    this.building_r_type[i] = 2; // Set as building 2
+                } else {
+                    this.building_r_type[i] = 3; // Set as building 3
+                } 
+
+                // Position building at back of line
+                this.buildings_r[i] = Mat4.identity().times(Mat4.scale(5, 5, 6)).times(Mat4.translation(3.7, 1.2, -2.1))
+                this.buildings_r[i] = this.buildings_r[i].times(Mat4.scale(1, 1, 1/6));
+                this.buildings_r[i] = this.buildings_r[i].times(Mat4.translation(0, 0, this.buildings_r[(i+this.num_buildings-1)%this.num_buildings][2][3]+dz));
+                this.buildings_r[i] = this.buildings_r[i].times(Mat4.scale(1,1,6));
+            }
+        }
+
+        // Draw light posts
+        
+
         // Create skater and jump motion
-        let skateboarder_transform = Mat4.identity().times(Mat4.translation(2.5*this.pos, 2, 0));
+        let skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, 2, 0));
         if (this.jump == 1) {
             const jump_duration = 0.75; 
             const jump_height_max = 3;
@@ -269,7 +427,7 @@ export class SkateboardingGame extends Scene {
             let jump_progress = Math.min(t - this.start_time, jump_duration);
             let jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
 
-            skateboarder_transform = Mat4.identity().times(Mat4.translation(2.5*this.pos, jump_height_at_time*2, 0));
+            skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, jump_height_at_time*2, 0));
             if (jump_progress >= jump_duration) {
                 this.jump = 0;
                 delete this.start_time;
@@ -319,7 +477,7 @@ export class SkateboardingGame extends Scene {
             // Initialize obstacle transform based on the obstacle type if passed threshold
             if (this.obstacles[i][2][3] > this.obstacle_cutoff) {
                 // Generate random x value position (lateral)
-                const obstacle_positions = [-2, 0, 2];
+                const obstacle_positions = [-4, 0, 4];
                 const random_index = Math.floor(Math.random() * obstacle_positions.length);
                 let x_pos = obstacle_positions[random_index];
     
