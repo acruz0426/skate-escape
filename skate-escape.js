@@ -37,15 +37,15 @@ export class SkateboardingGame extends Scene {
             skateboarder: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
             // Obstacles
-            obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/wood_fence.jpg")}),
-            obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/wood_bench.png")}),
+            obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/wood_bench.png")}),
+            obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/wood_fence.jpg")}),
             obstacleTrafficCone: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#fc7819")}),
         };
 
         // Initial camera location
         this.initial_camera_location = Mat4.look_at(
-            vec3(0, 10, 15), // eye position
+            vec3(0, 9, 15), // eye position
             vec3(0, 0, -5), // at position
             vec3(0, 1, 0) // up direction
         );
@@ -62,12 +62,16 @@ export class SkateboardingGame extends Scene {
         this.num_obstacles = 50;
         this.obstacle_initial = -150;
         this.obstacle_cutoff = 25;
-        this.max_dist = 20;
-        this.min_dist = 15;
+        this.max_dist = 15;
+        this.min_dist = 10;
         this.speed = 15;
 
         this.collision_threshold = 2;
         this.collision_detected = false;
+        this.backgroundMusic = document.getElementById('background-music');
+        this.backgroundMusic.volume = 0.4;
+        this.backgroundMusic.loop = true;
+
 
         for (let i = 0; i < this.num_obstacles; i++) {
             // Generate random x value position (lateral)
@@ -84,9 +88,9 @@ export class SkateboardingGame extends Scene {
             }
             // Generate random obstacle type
             const random_number = Math.random();
-            if (random_number < 0.1) {
+            if (random_number < 0.25) {
                 this.obstacle_type[i] = 1; // Set as jump obstacle
-            } else if (random_number >= 0.1 && random_number < 0.2) {
+            } else if (random_number >= 0.25 && random_number < 0.65) {
                 this.obstacle_type[i] = 2; // Set as cone obstacle
             } else {
                 this.obstacle_type[i] = 0; // Set as regular obstacle
@@ -158,6 +162,9 @@ export class SkateboardingGame extends Scene {
         this.score = 0;
         this.speed = 15;
         this.collision_detected = false;
+        this.backgroundMusic.pause();
+        this.backgroundMusic.currentTime = 0;
+        this.backgroundMusic.play();
 
         // Reset obstacles
         for (let i = 0; i < this.num_obstacles; i++) {
@@ -205,6 +212,7 @@ export class SkateboardingGame extends Scene {
     }
 
     display(context, program_state) {
+        this.backgroundMusic.play();
         // Setup program state
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
@@ -243,7 +251,7 @@ export class SkateboardingGame extends Scene {
         }
 
         // Draw Road
-        let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));
+        let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 250));
         this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
 
         // Create skater and jump motion
