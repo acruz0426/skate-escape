@@ -66,7 +66,7 @@ export class SkateboardingGame extends Scene {
         this.min_dist = 10;
         this.speed = 15;
 
-        this.collision_threshold = 2;
+        this.collision_threshold = 2.5;
         this.collision_detected = false;
         this.backgroundMusic = document.getElementById('background-music');
         this.backgroundMusic.volume = 0.4;
@@ -90,7 +90,7 @@ export class SkateboardingGame extends Scene {
             const random_number = Math.random();
             if (random_number < 0.25) {
                 this.obstacle_type[i] = 1; // Set as jump obstacle
-            } else if (random_number >= 0.25 && random_number < 0.65) {
+            } else if (random_number >= 0.25 && random_number < 2) {
                 this.obstacle_type[i] = 2; // Set as cone obstacle
             } else {
                 this.obstacle_type[i] = 0; // Set as regular obstacle
@@ -307,7 +307,7 @@ export class SkateboardingGame extends Scene {
             }
             // Draw traffic cone obstacle
             else if (this.obstacle_type[i] === 2) {
-                let transform = this.obstacles[i].times(Mat4.scale(0.8, 0.8, 0.8));
+                let transform = this.obstacles[i].times(Mat4.scale(1, 1, 1));
                 this.shapes.obstacleTrafficCone.draw(context, program_state, transform, this.materials.obstacleTrafficCone);
             } 
             // Draw bench obstacle
