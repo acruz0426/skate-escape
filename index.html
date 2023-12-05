@@ -8,32 +8,24 @@
     <link href="assets/fav.ico" rel="icon">
     <title>Tiny Graphics</title>
     <style>
-        .score-container {
-            position: absolute;
-            top: 25px;
-            left: 250px;
-            z-index: 1;
-            color: rgb(0, 0, 0);
-            font-size: 24px;
-            font-family: 'Arial', sans-serif;
-            text-shadow: -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff, 1px 1px 0 #ffffff; /* Text shadow for outline effect */
-        }
-
-        .game-over-screen {
+        .horizontal-center-container {
             position: absolute;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 2; /* Ensures it appears above the canvas */
-            top: 225px;
             left: 0;
             right: 0;
         }
 
-        .game-over-screen.show {
-            visibility: visible; /* Make visible when the game is over */
+        .final-score {
+            font-size: 25px !important;
+            font-family: 'Arial', sans-serif;
+            text-shadow: -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
         }
+
+        
 
         .game-over-text {
             font-size: 64px;
@@ -58,13 +50,13 @@
 </head>
 <body style="background: White">
 <div class="canvas-widget" id="main-canvas">
-    <div id="score-container" class="score-container">
-        Distance: <span id="score"></span>m
+    <div id="score-container" class="horizontal-center-container" style="top: 550px;">
+        <div id="score-text" class="final-score"></div>
     </div>
-    <div class="game-over-screen" id="game-over-screen" style="display: none;">
+    <div class="horizontal-center-container" id="game-over-screen" style="visibility: hidden; top: 225px;">
         <div class="game-over-text">Game Over</div>
         <div class="final-score" id="final-score"></div>
-        <div class="retry-button" id="retry-button">Press "R" To Retry</div>
+        <div class="retry-button" id="retry-button">Press "g" To Retry</div>
     </div>
 </div>
     

@@ -728,7 +728,7 @@ const Textured_Phong = defs.Textured_Phong =
                 // Other uniforms
                 animation_time: 0,
                 stop_texture_update: 0,
-                scale_factor: 0.05
+                texture_offset: 0.0,
                 // ...
             };
         }        
@@ -747,7 +747,7 @@ const Textured_Phong = defs.Textured_Phong =
                 uniform mat4 projection_camera_model_transform;
                 uniform float animation_time;
                 uniform int stop_texture_update; // Integer type
-                uniform float scale_factor;
+                uniform float texture_offset;
 
 
         
@@ -759,7 +759,7 @@ const Textured_Phong = defs.Textured_Phong =
                     vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
                     // Turn the per-vertex texture coordinate into an interpolated variable.
                     if (stop_texture_update == 0) {
-                        f_tex_coord = texture_coord - vec2(0.0, animation_time * scale_factor);
+                        f_tex_coord = texture_coord - vec2(0.0, texture_offset);
                     } else {
                         f_tex_coord = texture_coord; // Maintain original texture coordinates
                     }
@@ -789,29 +789,22 @@ const Textured_Phong = defs.Textured_Phong =
             // update_GPU(): Add a little more to the base class's version of this method.
             super.update_GPU(context, gpu_addresses, gpu_state, model_transform, material);
 
-            console.log("Shader Uniforms:", this.uniforms.stop_texture_update, this.uniforms.scale_factor);
-
-
             if (material.texture && material.texture.ready) {
                 // Select texture unit 0 for the fragment shader Sampler2D uniform called "texture":
                 context.uniform1i(gpu_addresses.texture, 0);
                 // For this draw, use the texture image from correct the GPU buffer:
                 material.texture.activate(context);
             }
-
             if (gpu_addresses.animation_time !== undefined) {
                 context.uniform1f(gpu_addresses.animation_time, gpu_state.animation_time / 1000);
             }
-
             if (gpu_addresses.stop_texture_update !== undefined) {
                 context.uniform1i(gpu_addresses.stop_texture_update, this.uniforms.stop_texture_update);
             }
-
-            if (gpu_addresses.scale_factor !== undefined) {
-                context.uniform1f(gpu_addresses.scale_factor, this.uniforms.scale_factor);
+            if (gpu_addresses.texture_offset !== undefined) {
+                context.uniform1f(gpu_addresses.texture_offset, this.uniforms.texture_offset);
             }
 
-        
         }
     }
 

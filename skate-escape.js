@@ -141,15 +141,18 @@ export class SkateboardingGame extends Scene {
     }
 
     gameOver(score) {
-        document.getElementById("game-over-screen").style.display = "flex";
-        document.getElementById("score-container").style.display = "none";
-        document.getElementById('final-score').textContent = 'Your Score: ' + score;
+        document.getElementById("game-over-screen").style.visibility = "visible";
+        document.getElementById("score-container").style.visibility = "hidden";
+        document.getElementById('final-score').textContent = 'Your Score: ' + score + 'm';
+        this.materials.road.shader.uniforms.stop_texture_update = 1;
+        this.speed = 0;
+
     }
     
     restartGame() {
         console.log("Resetting shader uniforms");
-        document.getElementById("game-over-screen").style.display = "none";
-        document.getElementById("score-container").style.display = "block";
+        document.getElementById("game-over-screen").style.visibility = "hidden";
+        document.getElementById("score-container").style.visibility = "visible";
         this.pos = 0;
         this.jump = 0;
         this.score = 0;
@@ -197,11 +200,8 @@ export class SkateboardingGame extends Scene {
 
         // Start texture update
         this.materials.road.shader.uniforms.stop_texture_update = 0;
-        this.materials.road.shader.uniforms.scale_factor = 0.05;
-        
-        // Call update gpu
-        this.materials.road.shader.update_GPU(
-            this.context, this.materials.road.shader.gpu_addresses, this.context.globals.graphics_state, Mat4.identity(), this.materials.road);
+        this.materials.road.shader.uniforms.texture_offset = 0;
+        this.materials.road.shader.uniforms.animation_time = 0;
     }
 
     display(context, program_state) {
@@ -224,19 +224,23 @@ export class SkateboardingGame extends Scene {
         // Make game speed up over time
         if (this.speed < 50 && !this.collision_detected && this.speed > 0){
             this.speed += 0.05;
-            this.materials.road.shader.uniforms.scale_factor = this.speed/400;
+            // this.materials.road.shader.uniforms.tex
+            // In your game update function
+            
+
         }
+        this.materials.road.shader.uniforms.texture_offset += this.speed * dt/280; 
 
         // Update score
         if (!this.collision_detected) {
             this.update_score(dt * this.speed);
-            document.getElementById("score").innerHTML = Math.floor(this.score);
+            document.getElementById("score-text").innerHTML = "Distance: " + Math.floor(this.score) + "m";
         }
         if (this.collision_detected) {
             this.gameOver(Math.floor(this.score));
+            this.materials.road.shader.uniforms.stop_texture_update = 1; // Stop texture update
+            this.speed = 0;
         }
-        // In your display method, before drawing the road
-        // this.materials.road.shader.update_GPU(context, this.materials.road.shader.gpu_addresses, program_state, road_transform, this.materials.road);
 
         // Draw Road
         let road_transform = Mat4.identity().times(Mat4.scale(5, 1, 150));
