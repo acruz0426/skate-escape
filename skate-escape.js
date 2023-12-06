@@ -25,6 +25,7 @@ export class SkateboardingGame extends Scene {
             obstacleTrafficCone: new Shape_From_File("assets/objects/traffic_cone.obj"),
             obstacleBus: new Shape_From_File("assets/objects/bus.obj"),
             building: new defs.Cube(),
+            sun: new defs.Subdivision_Sphere(4),
         };
 
 
@@ -34,15 +35,15 @@ export class SkateboardingGame extends Scene {
             ...this.materials,
             // Road
             road: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/road_texture.png")}),
-            sidewalk: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/sidewalk.png")}),
+            sidewalk: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/sidewalk.jpg")}),
             dashed_line: new Material(new defs.Phong_Shader(),
                 {ambient: 0.3, diffusivity: 0.6, color: hex_color("#FFFF00")}),
             // Skateboarder
             skateboarder: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
             // Obstacles
-            obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/wood_bench.png")}),
-            obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/wood_fence.jpg")}),
+            obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .7, diffusivity: 0.2, specularity: 0.3, texture: new Texture("assets/textures/wood_bench.png")}),
+            obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, diffusivity: 0, specularity: 0.5, texture: new Texture("assets/textures/wood_fence.jpg")}),
             obstacleTrafficCone: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#fc7819")}),
             obstacleBus: new Material(new defs.Textured_Phong(), {ambient: .7, diffusivity: 0.6}),
@@ -50,6 +51,8 @@ export class SkateboardingGame extends Scene {
             building1: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building1.jpg")}),
             building2: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building2.jpg")}),
             building3: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building3.jpg")}),
+            sun: new Material(new defs.Phong_Shader(),
+                {color: hex_color("#FFFF00"), ambient: 1, diffusivity: 0, specularity: 0}),
         };
 
         // Initial camera location
@@ -274,8 +277,13 @@ export class SkateboardingGame extends Scene {
             Math.PI / 4, context.width / context.height, .1, 1000);
 
         // Setup lighting
-        const light_position = vec4(0, 20, 20, 1);
-        program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+        let sun_position = vec4(5, 30, 30, 0);
+        program_state.lights = [new Light(sun_position, color(0.94, 0.94, 0.70, 1), 3000)];
+        
+        // Sun light
+        let sun_transform = Mat4.translation(sun_position).times(Mat4.scale(5, 5, 5)); // Adjust scale as needed
+        this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun);
+
 
         // Setup time variables
         let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
@@ -284,13 +292,9 @@ export class SkateboardingGame extends Scene {
         // Make game speed up over time
         if (this.speed < 50 && !this.collision_detected && this.speed > 0){
             this.speed += 0.05;
-            // this.materials.road.shader.uniforms.tex
-            // In your game update function
-            
-
         }
-        this.materials.road.shader.uniforms.texture_offset += this.speed * dt/280;
-        this.materials.sidewalk.shader.uniforms.texture_offset += 20*this.speed * dt/280;
+        this.materials.road.shader.uniforms.texture_offset += this.speed * dt/450;
+        this.materials.sidewalk.shader.uniforms.texture_offset += 20*this.speed * dt/450;
 
         // Update score
         if (!this.collision_detected) {
@@ -308,8 +312,8 @@ export class SkateboardingGame extends Scene {
         this.shapes.road.draw(context, program_state, road_transform, this.materials.road);
 
         // Draw sidewalk
-        let sidewalk_transform_l = Mat4.identity().times(Mat4.scale(4, 1, 10)).times(Mat4.translation(-3, 0, 0));
-        let sidewalk_transform_r = Mat4.identity().times(Mat4.scale(4, 1, 10)).times(Mat4.translation(3, 0, 0));
+        let sidewalk_transform_l = Mat4.identity().times(Mat4.scale(4, 1, 10)).times(Mat4.translation(-2.8, 0, 0));
+        let sidewalk_transform_r = Mat4.identity().times(Mat4.scale(4, 1, 10)).times(Mat4.translation(2.8, 0, 0));
         for (let i = 0; i < 13; i++)
         {
             this.shapes.sidewalk.draw(context, program_state, sidewalk_transform_l, this.materials.sidewalk);
@@ -408,8 +412,6 @@ export class SkateboardingGame extends Scene {
                 this.buildings_r[i] = this.buildings_r[i].times(Mat4.scale(1,1,6));
             }
         }
-
-        // Draw light posts
         
 
         // Create skater and jump motion

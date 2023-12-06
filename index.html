@@ -8,6 +8,15 @@
     <link href="assets/fav.ico" rel="icon">
     <title>Tiny Graphics</title>
     <style>
+        @font-face {
+            font-family: "Game Over Regular";
+            src: url("https://db.onlinewebfonts.com/t/044ff3aa766061f99fbbd171fb682d8c.eot");
+            src: url("https://db.onlinewebfonts.com/t/044ff3aa766061f99fbbd171fb682d8c.eot?#iefix")format("embedded-opentype"),
+            url("https://db.onlinewebfonts.com/t/044ff3aa766061f99fbbd171fb682d8c.woff2")format("woff2"),
+            url("https://db.onlinewebfonts.com/t/044ff3aa766061f99fbbd171fb682d8c.woff")format("woff"),
+            url("https://db.onlinewebfonts.com/t/044ff3aa766061f99fbbd171fb682d8c.ttf")format("truetype"),
+            url("https://db.onlinewebfonts.com/t/044ff3aa766061f99fbbd171fb682d8c.svg#Game Over Regular")format("svg");
+        }
 
         .horizontal-center-container {
             position: absolute;
@@ -21,32 +30,23 @@
         }
 
         .final-score {
-            font-size: 25px !important;
-            font-family: 'Arial', sans-serif;
-            text-shadow: -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
+            font-size: 65px;
+            font-family: 'Game Over Regular';
+            text-shadow: -.7px -.7px 0 #ffffff, .7px -.7px 0 #ffffff, -.7px .7px 0 #ffffff, .7px .7px 0 #ffffff;
         }
-
-        
 
         .game-over-text {
-            font-size: 64px;
-            font-family: 'Arial', sans-serif;
-            text-shadow: -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
-        }
-
-        .final-score {
-            font-size: 40px;
-            font-family: 'Arial', sans-serif;
+            font-size: 180px;
+            font-family: 'Game Over Regular';
             text-shadow: -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
         }
 
         .retry-button {
             margin-top: 50px;
-            font-size: 24px;
-            font-family: 'Arial', sans-serif;
-            text-shadow: -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
+            font-size: 80px;
+            font-family: 'Game Over Regular';
+            text-shadow: -.7px -.7px 0 #ffffff, .7px -.7px 0 #ffffff, -.7px .7px 0 #ffffff, .7px .7px 0 #ffffff;
         }
-        
     </style>
 </head>
 <body style="background: White">
@@ -58,9 +58,9 @@
     <div id="score-container" class="horizontal-center-container" style="top: 550px;">
         <div id="score-text" class="final-score"></div>
     </div>
-    <div class="horizontal-center-container" id="game-over-screen" style="visibility: hidden; top: 225px;">
+    <div class="horizontal-center-container" id="game-over-screen" style="visibility: hidden; top: 200px;">
         <div class="game-over-text">Game Over</div>
-        <div class="final-score" id="final-score"></div>
+        <div class="final-score" id="final-score" style="text-shadow: -.7px -.7px 0 #ffffff, .7px -.7px 0 #ffffff, -.7px .7px 0 #ffffff, .7px .7px 0 #ffffff;"></div>
         <div class="retry-button" id="retry-button">Press "g" To Retry</div>
     </div>
 </div>
