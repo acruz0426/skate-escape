@@ -18,6 +18,8 @@ export class SkateboardingGame extends Scene {
             // Skateboarder
             // skateboarder: new defs.Subdivision_Sphere(4),
             skateboarder: new Shape_From_File("assets/objects/skateMan.obj"),
+            // Police
+            police: new Shape_From_File("assets/objects/police.obj"),
             dashed_line: new defs.Cube(),
             // Obstacles
             obstacleFence: new Shape_From_File("assets/objects/fence.obj"),
@@ -40,6 +42,9 @@ export class SkateboardingGame extends Scene {
                 {ambient: 0.3, diffusivity: 0.6, color: hex_color("#FFFF00")}),
             // Skateboarder
             skateboarder: new Material(new defs.Phong_Shader(),
+                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
+            // Police
+            police: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
             // Obstacles
             obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .7, diffusivity: 0.2, specularity: 0.3, texture: new Texture("assets/textures/wood_bench.png")}),
@@ -166,11 +171,20 @@ export class SkateboardingGame extends Scene {
             }
             //////////////////////////////////////////////////////////////////////////
         }
+
+        this.police_position = Mat4.identity().times(Mat4.translation(0, 3, -20)); 
+
+        this.t = 0;
+        this.dt = 0;
+        this.gt = 0;
+        this.gdt = 0;
+        this.restartGameTime = 0;
+
     }
 
-    update_score(dt) {
+    update_score(gdt) {
         // Increment the score based on time or other factors
-        this.score += dt; // For example, increment score by the delta time
+        this.score += gdt; // For example, increment score by the delta time
     }
 
     // Controls
@@ -260,10 +274,15 @@ export class SkateboardingGame extends Scene {
             }
         }
 
+        this.police_position = Mat4.identity().times(Mat4.translation(0, 3, -20)); 
+
         // Start texture update
         this.materials.road.shader.uniforms.stop_texture_update = 0;
         this.materials.road.shader.uniforms.texture_offset = 0;
         this.materials.road.shader.uniforms.animation_time = 0;
+
+        // Used within display to keep the pause before the game begins
+        this.restartGameTime = this.t;
     }
 
     display(context, program_state) {
@@ -285,20 +304,40 @@ export class SkateboardingGame extends Scene {
         this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun);
 
 
-        // Setup time variables
-        let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
-        const dz = (dt * this.speed);
+        this.t = program_state.animation_time / 1000, this.dt = program_state.animation_delta_time / 1000;
+
+
+        // Adds a 10 second pause before movement begins, to add yelling policeman voice
+        if (this.restartGameTime > 0) {
+            if (this.t - this.restartGameTime < 10) {
+                this.gt = 0;
+                this.gdt = 0;
+            } else {
+                this.gt = this.t - this.restartGameTime - 10;
+                this.gdt = this.dt;
+            }
+        } else {
+            if (this.t < 10) {
+                this.gt = 0;
+                this.gdt = 0;
+            } else {
+                this.gt = this.t - 10;
+                this.gdt = this.dt;
+            }
+        }
+        
+        const dz = (this.gdt * this.speed);
 
         // Make game speed up over time
-        if (this.speed < 50 && !this.collision_detected && this.speed > 0){
+        if (this.speed < 50 && !this.collision_detected && this.speed > 0 && this.gdt !== 0){
             this.speed += 0.05;
         }
-        this.materials.road.shader.uniforms.texture_offset += this.speed * dt/450;
-        this.materials.sidewalk.shader.uniforms.texture_offset += 20*this.speed * dt/450;
+        this.materials.road.shader.uniforms.texture_offset += this.speed * this.gdt/450;
+        this.materials.sidewalk.shader.uniforms.texture_offset += 20*this.speed * this.gdt/450;
 
         // Update score
         if (!this.collision_detected) {
-            this.update_score(dt * this.speed);
+            this.update_score(this.gdt * this.speed);
             document.getElementById("score-text").innerHTML = "Distance: " + Math.floor(this.score) + "m";
         }
         if (this.collision_detected) {
@@ -423,10 +462,10 @@ export class SkateboardingGame extends Scene {
 
             if (!("start_time" in this)) {
                 // Record the start time if not already set
-                this.start_time = t;
+                this.start_time = this.gt;
             }
 
-            let jump_progress = Math.min(t - this.start_time, jump_duration);
+            let jump_progress = Math.min(this.gt - this.start_time, jump_duration);
             let jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
 
             skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, jump_height_at_time*2, 0));
@@ -508,6 +547,23 @@ export class SkateboardingGame extends Scene {
                         .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
                 }
             }
+        }
+        this.police_position = this.police_position.times(Mat4.translation(0, 0, dz));
+        this.shapes.police.draw(context, program_state, this.police_position, this.materials.police);
+
+        const polPos = this.police_position.times(vec4(0, 0, 0, 1));
+        const distance_to_police = Math.sqrt(
+            Math.pow(skateboarder_position[0] - polPos[0], 2) +
+            Math.pow(skateboarder_position[1] - polPos[1], 2) +
+            Math.pow(skateboarder_position[2] - polPos[2], 2)
+        );
+        
+        // Check for collision
+        if (distance_to_police < this.collision_threshold) {
+            console.log("hi");
+            this.collision_detected = true;
+            this.materials.road.shader.uniforms.stop_texture_update = 1; // Stop texture update
+            this.speed = 0;
         }
     }
 }
