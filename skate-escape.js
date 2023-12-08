@@ -74,8 +74,10 @@ export class SkateboardingGame extends Scene {
             obstacleFence: new Shape_From_File("assets/objects/fence.obj"),
             obstacleBench: new Shape_From_File("assets/objects/bench_high_res.obj"),
             obstacleTrafficCone: new Shape_From_File("assets/objects/traffic_cone.obj"),
-            obstacleBus: new Shape_From_File("assets/objects/bus.obj"),
+            obstacleBarricade: new Shape_From_File("assets/objects/concrete_barrier.obj"),
+            obstacleTires: new Shape_From_File("assets/objects/tire_stack.obj"),
             building: new defs.Cube(),
+            lampPost: new Shape_From_File("assets/objects/street_lamp.obj"),
             sun: new defs.Subdivision_Sphere(4),
         };
 
@@ -211,6 +213,39 @@ export class SkateboardingGame extends Scene {
             }
         };
 
+        // Lamp Shapes
+        this.lamp_shapes = {
+                post: new defs.Cube(),
+                bend: new defs.Cube(),
+                light: new defs.Cube(),
+        };
+
+        // Lamp Materials
+        this.lamp_materials = {
+                lamp_body: new Material(new defs.Phong_Shader(), {color: hex_color("#292a2b"), 
+                        ambient: 0.9, diffusivity: 0.7, specularity: 0.5}),
+                light: new Material(new defs.Phong_Shader(), {color: hex_color("#fff878"), 
+                        ambient: 1, diffusivity: 1, specularity: 0})
+        }
+            
+
+        // Function to draw lamp object based on model_transform
+        this.draw_lamp = function(context, program_state, model_transform, isLeft) {
+                let lean = -1;
+                let light_lean = lean - 0.7;
+                if (isLeft) {
+                        lean = 1;
+                        light_lean = lean + 0.7;
+                }
+                let post_transform = model_transform.times(Mat4.translation(0, 1, 0)).times(Mat4.scale(0.2, 5, 0.2));
+                let bend_transform = model_transform.times(Mat4.translation(lean, 5.7, 0)).times(Mat4.scale(1, 0.2, 0.2));
+                let light_transform = model_transform.times(Mat4.translation(light_lean, 5.5, 0)).times(Mat4.scale(0.2, 0.1, 0.1));
+                
+                this.lamp_shapes.post.draw(context, program_state, post_transform, this.lamp_materials.lamp_body);
+                this.lamp_shapes.bend.draw(context, program_state, bend_transform, this.lamp_materials.lamp_body);
+                this.lamp_shapes.light.draw(context, program_state, light_transform, this.lamp_materials.light);
+        };
+
         // Materials
         this.materials = {
             // Existing materials
@@ -234,8 +269,14 @@ export class SkateboardingGame extends Scene {
                 texture: new Texture("assets/textures/building2.jpg")}),
             building3: new Material(new defs.Textured_Phong(1), {ambient: .8, 
                 texture: new Texture("assets/textures/building3.jpg")}),
-            sun: new Material(new defs.Phong_Shader(),
+            sun: new Material(new defs.Phong_Shader(), 
                 {color: hex_color("#FFFF00"), ambient: 1, diffusivity: 0, specularity: 0}),
+            obstacleBarricade:  new Material(new defs.Textured_Phong(1), {ambient: .8, diffusivitiy: 0.2, specularity: 0,
+                texture: new Texture("assets/textures/concrete.png")}),
+            obstacleTires: new Material(new defs.Phong_Shader(), {color: hex_color("#12100b"), ambient: 0.9, 
+                diffusivity: 0.9, specularity: 0}),
+            lampPost: new Material(new defs.Phong_Shader(), {color: hex_color("#889bba"), ambient: 0.8, 
+                diffusivity: 0.6, specularity: 0.4})
         };
 
         // Initial camera location
@@ -273,7 +314,7 @@ export class SkateboardingGame extends Scene {
 
         for (let i = 0; i < this.num_obstacles; i++) {
             // Generate random x value position (lateral)
-            const obstacle_positions = [4, 0, 4];
+            const obstacle_positions = [-4, 0, 4];
             const random_index = Math.floor(Math.random() * obstacle_positions.length);
             this.xval[i] = obstacle_positions[random_index];
 
@@ -286,12 +327,12 @@ export class SkateboardingGame extends Scene {
             }
             // Generate random obstacle type
             const random_number = Math.random();
-            if (random_number < 0.25) {
-                this.obstacle_type[i] = 1; // Set as jump obstacle
-            } else if (random_number >= 0.25 && random_number < .65) {
+            if (random_number < 0.3) {
+                this.obstacle_type[i] = 1; // Set as barricade obstacle
+            } else if (random_number >= 0.3 && random_number < .7) {
                 this.obstacle_type[i] = 2; // Set as cone obstacle
             } else {
-                this.obstacle_type[i] = 0; // Set as regular obstacle
+                this.obstacle_type[i] = 0; // Set as tire stack obstacle
             }
 
             let initial_z = this.zval[i];
@@ -299,13 +340,13 @@ export class SkateboardingGame extends Scene {
             // Initialize obstacle transform based on the obstacle type
             if (this.obstacle_type[i] === 0) {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
             } else if (this.obstacle_type[i] === 2) {
                 this.obstacles[i] = Mat4.identity()
                     .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             } else {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
             }
         }
         //////////////////////////////////////////////////////////////////////////
@@ -350,8 +391,23 @@ export class SkateboardingGame extends Scene {
             } else {
                 this.building_l_type[i] = 3; // Set as building 3
             }
-            //////////////////////////////////////////////////////////////////////////
         }
+        //////////////////////////////////////////////////////////////////////////
+
+        ///////////////////////////// Lamps //////////////////////////////////////
+        this.lamps_l = [];
+        this.lamps_r = [];
+        this.num_lamps = 25;
+        this.lamp_initial = -150;
+        this.lamp_cutoff = 15;
+
+
+        for (let i = 0; i < this.num_lamps; i++) {
+            // Position buildings equidistant from next building
+            this.lamps_l[i] = Mat4.identity().times(Mat4.translation(-8, 0, -30*i));
+            this.lamps_r[i] = Mat4.identity().times(Mat4.translation(8, 0, -30*i));
+        }
+        //////////////////////////////////////////////////////////////////////////
 
         this.police_position = Mat4.identity().times(Mat4.translation(0, 2, -20)).times(Mat4.scale(1.5, 1.5, 1.5));
         this.t = 0;
@@ -433,12 +489,12 @@ export class SkateboardingGame extends Scene {
             }
             // Generate random obstacle type
             const random_number = Math.random();
-            if (random_number < 0.1) {
-                this.obstacle_type[i] = 1; // Set as jump obstacle
-            } else if (random_number >= 0.1 && random_number < 0.2) {
+            if (random_number < 0.3) {
+                this.obstacle_type[i] = 1; // Set as barricade obstacle
+            } else if (random_number >= 0.3 && random_number < 0.7) {
                 this.obstacle_type[i] = 2; // Set as cone obstacle
             } else {
-                this.obstacle_type[i] = 0; // Set as regular obstacle
+                this.obstacle_type[i] = 0; // Set as tire stack obstacle
             }
 
             let initial_z = this.zval[i];
@@ -446,13 +502,13 @@ export class SkateboardingGame extends Scene {
             // Initialize obstacle transform based on the obstacle type
             if (this.obstacle_type[i] === 0) {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
             } else if (this.obstacle_type[i] === 2) {
                 this.obstacles[i] = Mat4.identity()
                     .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             } else {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
+                    .times(Mat4.translation(this.xval[i], 2, initial_z));
             }
         }
 
@@ -541,6 +597,27 @@ export class SkateboardingGame extends Scene {
             this.shapes.sidewalk.draw(context, program_state, sidewalk_transform_r, this.materials.sidewalk);
             sidewalk_transform_l = sidewalk_transform_l.times(Mat4.translation(0, 0, -2));
             sidewalk_transform_r = sidewalk_transform_r.times(Mat4.translation(0, 0, -2));
+        }
+
+        // Draw lamps left side
+        for (let i = 0; i < this.num_lamps; i++)
+        {
+            this.lamps_l[i] = this.lamps_l[i].times(Mat4.translation(0, 0, dz));
+            this.draw_lamp(context, program_state, this.lamps_l[i], true);
+            if (this.lamps_l[i][2][3] > this.lamp_cutoff) {
+                    this.lamps_l[i] = Mat4.identity().times(Mat4.translation(-8, 0, -30));
+                    this.lamps_l[i] = this.lamps_l[i].times(Mat4.translation(0, 0, this.lamps_l[(i+this.num_lamps-1)%this.num_lamps][2][3]+dz));
+            }
+        }
+        // Draw lamps right side
+        for (let i = 0; i < this.num_lamps; i++)
+        {
+            this.lamps_r[i] = this.lamps_r[i].times(Mat4.translation(0, 0, dz));
+            this.draw_lamp(context, program_state, this.lamps_r[i], false);
+            if (this.lamps_r[i][2][3] > this.lamp_cutoff) {
+                    this.lamps_r[i] = Mat4.identity().times(Mat4.translation(8, 0, -30));
+                    this.lamps_r[i] = this.lamps_r[i].times(Mat4.translation(0, 0, this.lamps_r[(i+this.num_lamps-1)%this.num_lamps][2][3]+dz));
+            }
         }
 
         // Draw buildings left side
@@ -729,20 +806,20 @@ export class SkateboardingGame extends Scene {
         // Draw obstacles
         for (let i = 0; i < this.num_obstacles; i++ ) {
             this.obstacles[i] = this.obstacles[i].times(Mat4.translation(0, 0, dz));
-            // Draw fence obstacle
+            // Draw tire stack obstacle
             if (this.obstacle_type[i] === 0) {
                 let transform = this.obstacles[i].times(Mat4.rotation(Math.PI/2, 1, 0, 0)).times(Mat4.scale(0.8, 1.2, 1.2));
-                this.shapes.obstacleFence.draw(context, program_state, transform, this.materials.obstacleFence);
+                this.shapes.obstacleTires.draw(context, program_state, transform, this.materials.obstacleTires);
             }
             // Draw traffic cone obstacle
             else if (this.obstacle_type[i] === 2) {
                 let transform = this.obstacles[i].times(Mat4.scale(1, 1, 1));
                 this.shapes.obstacleTrafficCone.draw(context, program_state, transform, this.materials.obstacleTrafficCone);
             } 
-            // Draw bench obstacle
+            // Draw barricade obstacle
             else {
-                let transform = this.obstacles[i].times(Mat4.scale(2.2, 1.2, 1.4));
-                this.shapes.obstacleBench.draw(context, program_state, transform, this.materials.obstacleBench);
+                let transform = this.obstacles[i].times(Mat4.scale(1.7, 3, 1.4));
+                this.shapes.obstacleBarricade.draw(context, program_state, transform, this.materials.obstacleBarricade);
             }
 
             // Initialize obstacle transform based on the obstacle type if passed threshold
@@ -757,12 +834,12 @@ export class SkateboardingGame extends Scene {
                 
                 // Generate random obstacle type
                 const random_number = Math.random();
-                if (random_number < 0.1) {
-                    this.obstacle_type[i] = 1; // Set as jump obstacle
-                } else if (random_number >= 0.1 && random_number < 0.2) {
+                if (random_number < 0.3) {
+                    this.obstacle_type[i] = 1; // Set as barricade obstacle
+                } else if (random_number >= 0.3 && random_number < 0.7) {
                     this.obstacle_type[i] = 2; // Set as cone obstacle
                 } else {
-                    this.obstacle_type[i] = 0; // Set as regular obstacle
+                    this.obstacle_type[i] = 0; // Set as tire stack obstacle
                 } 
 
                 // Position new random object at back of line
@@ -771,7 +848,7 @@ export class SkateboardingGame extends Scene {
                         .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
                 } else if (this.obstacle_type[i] === 2) {
                     this.obstacles[i] = Mat4.identity()
-                        .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
+                        .times(Mat4.translation(x_pos, 1.5, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
                 } else {
                     this.obstacles[i] = Mat4.identity()
                         .times(Mat4.translation(x_pos, 2, this.obstacles[(i+this.num_obstacles-1)%this.num_obstacles][2][3]+dz-z_offset));
