@@ -273,7 +273,7 @@ export class SkateboardingGame extends Scene {
                 {color: hex_color("#FFFF00"), ambient: 1, diffusivity: 0, specularity: 0}),
             obstacleBarricade:  new Material(new defs.Textured_Phong(1), {ambient: .8, diffusivitiy: 0.2, specularity: 0,
                 texture: new Texture("assets/textures/concrete.png")}),
-            obstacleTires: new Material(new defs.Phong_Shader(), {color: hex_color("#12100b"), ambient: 0.9, 
+            obstacleTires: new Material(new defs.Phong_Shader(), {color: hex_color("#12100b"), ambient: 0.5, 
                 diffusivity: 0.9, specularity: 0}),
             lampPost: new Material(new defs.Phong_Shader(), {color: hex_color("#889bba"), ambient: 0.8, 
                 diffusivity: 0.6, specularity: 0.4})
