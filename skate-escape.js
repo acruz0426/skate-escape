@@ -249,6 +249,8 @@ export class SkateboardingGame extends Scene {
         this.jump = 0;
         this.score = 0; 
         this.bend_angle = 0;       
+        this.left = 0;
+        this.right = 0;
 
         ///////////////////////////// Obstacles /////////////////////////////////
         this.obstacles = [];
@@ -368,15 +370,17 @@ export class SkateboardingGame extends Scene {
     // Controls
     make_control_panel() {
         this.key_triggered_button("Left", ["q"], () => {
-            if (!this.collision_detected && (this.pos === 0 || this.pos === 1)) {
+            if (!this.collision_detected && (this.pos === 0 || this.pos === 1) && this.gt !== 0) {
                 // Shift skateboarder to the left
                 this.pos -= 1; // Update the position to move left
+                this.left = 1;
             }
         });
         this.key_triggered_button("Right", ["e"], () => {
-            if (!this.collision_detected && (this.pos === -1 || this.pos === 0)) {
+            if (!this.collision_detected && (this.pos === -1 || this.pos === 0) && this.gt !== 0) {
                 // Shift skateboarder to the right 
                 this.pos += 1; // Update the position to move right
+                this.right = 1;
             }
         });
         this.key_triggered_button("Jump", ["t"], () => {
@@ -666,6 +670,44 @@ export class SkateboardingGame extends Scene {
             console.log(this.bend_angle);
         }
 
+        if (this.left == 1) {
+            const left_duration = 0.3; 
+
+            if (!("start_time" in this)) {
+                this.start_time = this.gt;
+            }
+
+            let left_progress = Math.min(this.gt - this.start_time, left_duration);
+
+
+            if (left_progress < left_duration) {
+                skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, 2.25, 0)).times(Mat4.rotation(Math.PI/2, 0, 1, 0)).times(Mat4.rotation(-Math.PI/20, 1, 0, 0)).times(Mat4.scale(1.5, 1.5, 1.5));
+            }
+            else {
+                this.left = 0;
+                delete this.start_time;
+            }
+        }
+
+        if (this.right == 1) {
+            const right_duration = 0.3; 
+
+            if (!("start_time" in this)) {
+                this.start_time = this.gt;
+            }
+
+            let right_progress = Math.min(this.gt - this.start_time, right_duration);
+
+
+            if (right_progress < right_duration) {
+                skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, 2.25, 0)).times(Mat4.rotation(Math.PI/2, 0, 1, 0)).times(Mat4.rotation(Math.PI/20, 1, 0, 0)).times(Mat4.scale(1.5, 1.5, 1.5));
+            }
+            else {
+                this.right = 0;
+                delete this.start_time;
+            }
+        }
+
         this.draw_human_figure(context, program_state, skateboarder_transform, this.bend_angle);
 
         const skateboarder_position = skateboarder_transform.times(vec4(0, 0, 0, 1));
@@ -677,7 +719,6 @@ export class SkateboardingGame extends Scene {
                 Math.pow(skateboarder_position[2] - obstacle_position[2], 2)
             );
             if (distance < this.collision_threshold) {
-                console.log(`Collision with obstacle ${i} detected!`);
                 this.collision_detected = true;
                 this.materials.road.shader.uniforms.stop_texture_update = 1; // Stop texture update
                 this.speed = 0;
@@ -750,7 +791,6 @@ export class SkateboardingGame extends Scene {
         
         // Check for collision
         if (distance_to_police < this.collision_threshold) {
-            console.log("hi");
             this.collision_detected = true;
             this.materials.road.shader.uniforms.stop_texture_update = 1; // Stop texture update
             this.speed = 0;
