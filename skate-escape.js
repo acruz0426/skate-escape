@@ -747,7 +747,7 @@ export class SkateboardingGame extends Scene {
             console.log(this.bend_angle);
         }
 
-        if (this.left == 1) {
+        if (this.left == 1 && this.jump == 0) {
             const left_duration = 0.3; 
 
             if (!("start_time" in this)) {
@@ -766,7 +766,7 @@ export class SkateboardingGame extends Scene {
             }
         }
 
-        if (this.right == 1) {
+        if (this.right == 1 && this.jump == 0) {
             const right_duration = 0.3; 
 
             if (!("start_time" in this)) {
