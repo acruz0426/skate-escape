@@ -5,6 +5,60 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture
 } = tiny;
 
+class Skateboard extends Shape {
+    constructor() {
+        super("position", "normal", "texture_coord");
+        // Main body of the skateboard
+        this.body = new defs.Cube();
+
+        // Rounded edges (using spheres)
+        this.edge1 = new defs.Subdivision_Sphere(4);
+        this.edge2 = new defs.Subdivision_Sphere(4);
+
+        // Wheels (using spheres)
+        this.wheel = new defs.Subdivision_Sphere(4);
+    }
+
+    draw(context, program_state, model_transform, material_board, material_wheels) {
+        // Adjust these values based on the size of your skateboard
+        let length = 1.25, width = 0.03, height = 0.35;
+
+        // Draw the main body
+        let body_transform = model_transform.times(Mat4.scale(length, width, height));
+        this.body.draw(context, program_state, body_transform, material_board);
+
+        // Draw the rounded edges
+        let edge_transform = model_transform.times(Mat4.translation(length, 0, 0))
+                                            .times(Mat4.scale(height, width, height));
+        this.edge1.draw(context, program_state, edge_transform, material_board);
+
+        edge_transform = model_transform.times(Mat4.translation(-length, 0, 0))
+                                         .times(Mat4.scale(height, width, height));
+        this.edge2.draw(context, program_state, edge_transform, material_board);
+
+        let wheel_radius = 0.1;
+        let wheel_thickness = 0.06;
+        let wheel_transform;
+
+        wheel_transform = model_transform.times(Mat4.translation(1, -0.1, 0.3))
+                                .times(Mat4.scale(wheel_radius, wheel_radius, wheel_thickness));
+        this.wheel.draw(context, program_state, wheel_transform, material_wheels);
+
+        wheel_transform = model_transform.times(Mat4.translation(1, -0.1, -0.3))
+                                .times(Mat4.scale(wheel_radius, wheel_radius, wheel_thickness));
+        this.wheel.draw(context, program_state, wheel_transform, material_wheels);
+
+        wheel_transform = model_transform.times(Mat4.translation(-1, -0.1, 0.3))
+                                .times(Mat4.scale(wheel_radius, wheel_radius, wheel_thickness));
+        this.wheel.draw(context, program_state, wheel_transform, material_wheels);
+
+        wheel_transform = model_transform.times(Mat4.translation(-1, -0.1, -0.3))
+                                .times(Mat4.scale(wheel_radius, wheel_radius, wheel_thickness));
+        this.wheel.draw(context, program_state, wheel_transform, material_wheels);
+    }
+}
+
+
 export class SkateboardingGame extends Scene {
     constructor() {
         super();
@@ -12,14 +66,9 @@ export class SkateboardingGame extends Scene {
         this.shapes = {
             // Existing shapes
             ...this.shapes,
-            // Road
+            // Road and sidewalk
             road: new defs.Cube(),
             sidewalk: new defs.Cube(),
-            // Skateboarder
-            // skateboarder: new defs.Subdivision_Sphere(4),
-            skateboarder: new Shape_From_File("assets/objects/skateMan.obj"),
-            // Police
-            police: new Shape_From_File("assets/objects/police.obj"),
             dashed_line: new defs.Cube(),
             // Obstacles
             obstacleFence: new Shape_From_File("assets/objects/fence.obj"),
@@ -30,6 +79,137 @@ export class SkateboardingGame extends Scene {
             sun: new defs.Subdivision_Sphere(4),
         };
 
+        this.human_shapes = {
+            head: new defs.Subdivision_Sphere(4),
+            body: new defs.Rounded_Capped_Cylinder(4, 10),
+            arm: new defs.Capped_Cylinder(4, 10),
+            upper_leg: new defs.Capped_Cylinder(4, 10), // for the thigh
+            lower_leg: new defs.Capped_Cylinder(4, 10), // for the calf
+            hand: new defs.Subdivision_Sphere(2),
+            foot: new defs.Subdivision_Sphere(2),
+            police_hat: new defs.Subdivision_Sphere(4),
+            skateboard: new Skateboard(),
+        };
+
+        this.human_materials = {
+            skin: new Material(new defs.Phong_Shader(), {ambient: 0.3, color: hex_color("#FDD5B1")}),
+            hands: new Material(new defs.Phong_Shader(), {ambient: 0.3, color: hex_color("#F3C79A")}),
+            player_cloth: new Material(new defs.Phong_Shader(), {ambient: 0.3, color: hex_color("#C51E3A")}),
+            police_cloth: new Material(new defs.Phong_Shader(), {ambient: 0.3, color: hex_color("#135DD8")}),
+            shoes: new Material(new defs.Textured_Phong(1), {ambient: .5, diffusivity: 0.2, specularity: 0.3, texture: new Texture("assets/textures/shoe_texture.png")}),
+            skateboard: new Material(new defs.Textured_Phong(1), {ambient: .1, diffusivity: 0.1, 
+                specularity: 0.3, texture: new Texture("assets/textures/skateboard_texture.png")}),
+            wheels: new Material(new defs.Phong_Shader(), {ambient: 0.3, color: hex_color("#A9A9A9")}),
+        };
+
+        this.draw_human_figure = function(context, program_state, model_transform, bend_angle=0, wave_hands=false, wave_angle=0, is_police=false) {  
+            // Determine which cloth to use
+            let cloth_material = this.human_materials.player_cloth;
+            if (is_police) {
+                cloth_material = this.human_materials.police_cloth;
+            }
+            
+            // Calculate the angles for the human figure
+            let back_bend_angle = bend_angle/2;
+            let upper_leg_bend_angle = bend_angle;
+            let lower_leg_bend_angle = -1 * bend_angle;
+            
+            // Base transform for the entire human figure
+            let base_transform = model_transform.times(Mat4.translation(0, 0.5, 0)).times(Mat4.rotation(-back_bend_angle, 1, 0, 0))
+                
+            // Draw head
+            let head_transform = base_transform.times(Mat4.translation(0, 0.85, 0))
+                                        .times(Mat4.scale(0.3, 0.3, 0.3));
+            this.human_shapes.head.draw(context, program_state, head_transform, this.human_materials.skin);
+
+            // Draw police hat
+            if (is_police) {
+                let hat_transform = base_transform.times(Mat4.translation(0, 1.1, 0))
+                                            .times(Mat4.scale(0.25, 0.25, 0.25));
+                this.human_shapes.police_hat.draw(context, program_state, hat_transform, this.human_materials.police_cloth);
+            }
+            
+            // Draw body
+            let body_transform = model_transform.times(Mat4.translation(0, 0.5, 0))
+                                        .times(Mat4.rotation(-back_bend_angle, 1, 0, 0))
+                                        .times(Mat4.scale(0.5, 0.6, 0.4));
+            this.human_shapes.body.draw(context, program_state, body_transform, cloth_material);
+
+            if (wave_hands) {
+                let hand_wave_transform = model_transform.times(Mat4.translation(0.45, 0.5, 0.02))
+                                            .times(Mat4.rotation(Math.PI/7, 0, 1, 1))
+                                            .times(Mat4.translation(0, .3, 0))
+                                            .times(Mat4.rotation(wave_angle - 1.5, 1, 0, 0))
+                                            .times(Mat4.translation(0, -.3, 0))
+                                            .times(Mat4.scale(0.1, 0.4, 0.15));
+                this.human_shapes.arm.draw(context, program_state, hand_wave_transform, this.human_materials.skin);
+                hand_wave_transform = hand_wave_transform.times(Mat4.translation(0, -1, 0))
+                                            .times(Mat4.scale(1, 0.25, 0.8));
+                this.human_shapes.hand.draw(context, program_state, hand_wave_transform, this.human_materials.hands);
+                
+
+                hand_wave_transform = model_transform.times(Mat4.translation(-0.45, 0.5, 0.02))
+                                            .times(Mat4.rotation(Math.PI/7, 0, -1, -1))
+                                            .times(Mat4.translation(0, .3, 0))
+                                            .times(Mat4.rotation(wave_angle - 1.5, 1, 0, 0))
+                                            .times(Mat4.translation(0, -.3, 0))
+                                            .times(Mat4.scale(0.1, 0.4, 0.15));
+                this.human_shapes.arm.draw(context, program_state, hand_wave_transform, this.human_materials.skin);
+                hand_wave_transform = hand_wave_transform.times(Mat4.translation(0, -1, 0))
+                                            .times(Mat4.scale(1, 0.25, 0.8));
+                this.human_shapes.hand.draw(context, program_state, hand_wave_transform, this.human_materials.hands);
+            } else {
+                // Draw right arm and hand
+                let arm_transform = base_transform.times(Mat4.translation(0.45, 0, 0.02))
+                                            .times(Mat4.rotation(Math.PI/7, 0, 1, 1))
+                                            .times(Mat4.scale(0.1, 0.4, 0.15));
+                this.human_shapes.arm.draw(context, program_state, arm_transform, this.human_materials.skin);
+
+                let hand_transform = arm_transform.times(Mat4.translation(0, -1, 0))
+                                            .times(Mat4.scale(1, 0.25, .8));
+                this.human_shapes.hand.draw(context, program_state, hand_transform, this.human_materials.hands);
+
+                // Draw left arm and hand
+                arm_transform = base_transform.times(Mat4.translation(-0.45, 0, 0.02))
+                                            .times(Mat4.rotation(Math.PI/7, 0, 1, -1))
+                                            .times(Mat4.scale(0.1, 0.4, 0.15));
+                this.human_shapes.arm.draw(context, program_state, arm_transform, this.human_materials.skin);
+
+                hand_transform = arm_transform.times(Mat4.translation(0, -1, 0))
+                                            .times(Mat4.scale(1, 0.25, 0.8));
+                this.human_shapes.hand.draw(context, program_state, hand_transform, this.human_materials.hands);
+            }
+
+            // Draw right upper and lower leg and foot
+            let right_leg_transform = model_transform.times(Mat4.translation(0.2, -0.1, 0)).times(Mat4.scale(0.1, 0.25, 0.15));
+            
+            let upper_leg_transform = right_leg_transform.times(Mat4.rotation(upper_leg_bend_angle, 1, 0, 0));
+            this.human_shapes.upper_leg.draw(context, program_state, upper_leg_transform, this.human_materials.skin);
+
+            let lower_leg_transform = right_leg_transform.times(Mat4.translation(0, -0.7, 0)).times(Mat4.rotation(lower_leg_bend_angle, 1, 0, 0)).times(Mat4.translation(0, -0.3, 0)).times(Mat4.scale(1, 1, 1));
+            this.human_shapes.lower_leg.draw(context, program_state, lower_leg_transform, this.human_materials.skin);
+
+            // Draw left upper and lower leg and foot
+            let left_leg_transform = model_transform.times(Mat4.translation(-0.2, -0.1, 0)).times(Mat4.scale(0.1, 0.25, 0.15));
+            upper_leg_transform = left_leg_transform.times(Mat4.rotation(upper_leg_bend_angle, 1, 0, 0));
+            this.human_shapes.upper_leg.draw(context, program_state, upper_leg_transform, this.human_materials.skin);
+
+            lower_leg_transform = left_leg_transform.times(Mat4.translation(0, -0.7, 0)).times(Mat4.rotation(lower_leg_bend_angle, 1, 0, 0)).times(Mat4.translation(0, -0.3, 0)).times(Mat4.scale(1, 1, 1));
+            this.human_shapes.lower_leg.draw(context, program_state, lower_leg_transform, this.human_materials.skin);
+
+            // Draw feet
+            let foot_transform = model_transform.times(Mat4.translation(0.2, -0.55, -0.05 + 0.1 * bend_angle)).times(Mat4.scale(0.12, 0.12, 0.2));
+            this.human_shapes.foot.draw(context, program_state, foot_transform, this.human_materials.shoes);
+
+            foot_transform = model_transform.times(Mat4.translation(-0.2, -0.55, -0.05 + 0.1 * bend_angle)).times(Mat4.scale(0.12, 0.12, 0.2));
+            this.human_shapes.foot.draw(context, program_state, foot_transform, this.human_materials.shoes);
+
+            // Draw skateboard under the feet
+            if (!is_police) {
+                let skateboard_transform = model_transform.times(Mat4.translation(0, -0.65, -0.05));
+                this.human_shapes.skateboard.draw(context, program_state, skateboard_transform, this.human_materials.skateboard, this.human_materials.wheels);
+            }
+        };
 
         // Materials
         this.materials = {
@@ -38,24 +218,22 @@ export class SkateboardingGame extends Scene {
             // Road
             road: new Material(new defs.Textured_Phong(1), {ambient: .5, texture: new Texture("assets/textures/road_texture.png")}),
             sidewalk: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/sidewalk.jpg")}),
-            dashed_line: new Material(new defs.Phong_Shader(),
-                {ambient: 0.3, diffusivity: 0.6, color: hex_color("#FFFF00")}),
-            // Skateboarder
-            skateboarder: new Material(new defs.Phong_Shader(),
-                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
-            // Police
-            police: new Material(new defs.Phong_Shader(),
-                {ambient: 0.4, diffusivity: 0.6, color: hex_color("#ffa500")}),
             // Obstacles
-            obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .7, diffusivity: 0.2, specularity: 0.3, texture: new Texture("assets/textures/wood_bench.png")}),
-            obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, diffusivity: 0, specularity: 0.5, texture: new Texture("assets/textures/wood_fence.jpg")}),
+            obstacleFence: new Material(new defs.Textured_Phong(1), {ambient: .7, diffusivity: 0.2,
+                specularity: 0.3, texture: new Texture("assets/textures/wood_bench.png")}),
+            obstacleBench: new Material(new defs.Textured_Phong(1), {ambient: .8, diffusivity: 0,
+                specularity: 0.5, texture: new Texture("assets/textures/wood_fence.jpg")}),
             obstacleTrafficCone: new Material(new defs.Phong_Shader(),
                 {ambient: 0.4, diffusivity: 0.6, color: hex_color("#fc7819")}),
             obstacleBus: new Material(new defs.Textured_Phong(), {ambient: .7, diffusivity: 0.6}),
-            buildingOffice: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/office.png")}),
-            building1: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building1.jpg")}),
-            building2: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building2.jpg")}),
-            building3: new Material(new defs.Textured_Phong(1), {ambient: .8, texture: new Texture("assets/textures/building3.jpg")}),
+            buildingOffice: new Material(new defs.Textured_Phong(1), {ambient: .8, 
+                texture: new Texture("assets/textures/office.png")}),
+            building1: new Material(new defs.Textured_Phong(1), {ambient: .8, 
+                texture: new Texture("assets/textures/building1.jpg")}),
+            building2: new Material(new defs.Textured_Phong(1), {ambient: .8, 
+                texture: new Texture("assets/textures/building2.jpg")}),
+            building3: new Material(new defs.Textured_Phong(1), {ambient: .8, 
+                texture: new Texture("assets/textures/building3.jpg")}),
             sun: new Material(new defs.Phong_Shader(),
                 {color: hex_color("#FFFF00"), ambient: 1, diffusivity: 0, specularity: 0}),
         };
@@ -69,7 +247,8 @@ export class SkateboardingGame extends Scene {
         
         this.pos = 0;
         this.jump = 0;
-        this.score = 0;
+        this.score = 0; 
+        this.bend_angle = 0;       
 
         ///////////////////////////// Obstacles /////////////////////////////////
         this.obstacles = [];
@@ -118,13 +297,13 @@ export class SkateboardingGame extends Scene {
             // Initialize obstacle transform based on the obstacle type
             if (this.obstacle_type[i] === 0) {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             } else if (this.obstacle_type[i] === 2) {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             } else {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             }
         }
         //////////////////////////////////////////////////////////////////////////
@@ -172,8 +351,7 @@ export class SkateboardingGame extends Scene {
             //////////////////////////////////////////////////////////////////////////
         }
 
-        this.police_position = Mat4.identity().times(Mat4.translation(0, 3, -20)); 
-
+        this.police_position = Mat4.identity().times(Mat4.translation(0, 2, -20)).times(Mat4.scale(1.5, 1.5, 1.5));
         this.t = 0;
         this.dt = 0;
         this.gt = 0;
@@ -264,17 +442,17 @@ export class SkateboardingGame extends Scene {
             // Initialize obstacle transform based on the obstacle type
             if (this.obstacle_type[i] === 0) {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             } else if (this.obstacle_type[i] === 2) {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             } else {
                 this.obstacles[i] = Mat4.identity()
-                    .times(Mat4.translation(this.xval[i], 2, initial_z));
+                    .times(Mat4.translation(this.xval[i], 1.5, initial_z));
             }
         }
 
-        this.police_position = Mat4.identity().times(Mat4.translation(0, 3, -20)); 
+        this.police_position = Mat4.identity().times(Mat4.translation(0, 2, -20)).times(Mat4.scale(1.5, 1.5, 1.5));
 
         // Start texture update
         this.materials.road.shader.uniforms.stop_texture_update = 0;
@@ -286,7 +464,7 @@ export class SkateboardingGame extends Scene {
     }
 
     display(context, program_state) {
-        //this.backgroundMusic.play();
+        this.backgroundMusic.play();
         // Setup program state
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
@@ -300,28 +478,28 @@ export class SkateboardingGame extends Scene {
         program_state.lights = [new Light(sun_position, color(0.94, 0.94, 0.70, 1), 3000)];
         
         // Sun light
-        let sun_transform = Mat4.translation(sun_position).times(Mat4.scale(5, 5, 5)); // Adjust scale as needed
+        let sun_transform = Mat4.translation(sun_position).times(Mat4.scale(5, 5, 5));
         this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun);
 
 
         this.t = program_state.animation_time / 1000, this.dt = program_state.animation_delta_time / 1000;
 
 
-        // Adds a 10 second pause before movement begins, to add yelling policeman voice
+        // Adds a 2 second pause before movement begins, to add yelling policeman voice
         if (this.restartGameTime > 0) {
-            if (this.t - this.restartGameTime < 10) {
+            if (this.t - this.restartGameTime < 2) {
                 this.gt = 0;
                 this.gdt = 0;
             } else {
-                this.gt = this.t - this.restartGameTime - 10;
+                this.gt = this.t - this.restartGameTime - 2;
                 this.gdt = this.dt;
             }
         } else {
-            if (this.t < 10) {
+            if (this.t < 4) {
                 this.gt = 0;
                 this.gdt = 0;
             } else {
-                this.gt = this.t - 10;
+                this.gt = this.t - 4;
                 this.gdt = this.dt;
             }
         }
@@ -454,30 +632,41 @@ export class SkateboardingGame extends Scene {
         
 
         // Create skater and jump motion
-        let skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, 2, 0));
+        let skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, 2.25, 0)).times(Mat4.rotation(Math.PI/2, 0, 1, 0)).times(Mat4.scale(1.5, 1.5, 1.5));
         if (this.jump == 1) {
-            const jump_duration = 0.75; 
-            const jump_height_max = 3;
+            const jump_duration = 0.8; 
+            const bend_duration = jump_duration / 5; 
+            const jump_height_max = 4;
             const jump_height_min = 1;
 
             if (!("start_time" in this)) {
-                // Record the start time if not already set
                 this.start_time = this.gt;
             }
 
             let jump_progress = Math.min(this.gt - this.start_time, jump_duration);
-            let jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
 
-            skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, jump_height_at_time*2, 0));
+            let jump_height_at_time = 0;
+
+            if (jump_progress < bend_duration) {
+                this.bend_angle = 0.5 * Math.sin((Math.PI / bend_duration) * jump_progress);
+                skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, 2.25, 0)).times(Mat4.rotation(Math.PI/2, 0, 1, 0)).times(Mat4.scale(1.5, 1.5, 1.5));
+            }
+            else {
+                jump_height_at_time = jump_height_min + (0.5*(jump_height_max-jump_height_min)) * Math.sin((Math.PI / jump_duration) * jump_progress);
+                this.bend_angle = 0;
+                skateboarder_transform = Mat4.identity().times(Mat4.translation(4*this.pos, jump_height_at_time*2.25, 0)).times(Mat4.rotation(Math.PI/2, 0, 1, 0)).times(Mat4.scale(1.5, 1.5, 1.5));
+            }
+
+            
+
             if (jump_progress >= jump_duration) {
                 this.jump = 0;
                 delete this.start_time;
             }
+            console.log(this.bend_angle);
         }
 
-        // Draw the skateboarder
-        skateboarder_transform = skateboarder_transform.times(Mat4.translation(0, 1, 0)).times(Mat4.rotation(-Math.PI/2, 1, 0, 0)).times(Mat4.rotation(Math.PI/2, 0, 0, 1));
-        this.shapes.skateboarder.draw(context, program_state, skateboarder_transform, this.materials.skateboarder);
+        this.draw_human_figure(context, program_state, skateboarder_transform, this.bend_angle);
 
         const skateboarder_position = skateboarder_transform.times(vec4(0, 0, 0, 1));
         for (let i = 0; i < this.num_obstacles; i++) {
@@ -549,7 +738,8 @@ export class SkateboardingGame extends Scene {
             }
         }
         this.police_position = this.police_position.times(Mat4.translation(0, 0, dz));
-        this.shapes.police.draw(context, program_state, this.police_position, this.materials.police);
+        let wave_angle = Math.sin(this.t * 2 * Math.PI);
+        this.draw_human_figure(context, program_state, this.police_position, 0, true, wave_angle, true);
 
         const polPos = this.police_position.times(vec4(0, 0, 0, 1));
         const distance_to_police = Math.sqrt(
