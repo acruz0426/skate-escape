@@ -547,11 +547,11 @@ export class SkateboardingGame extends Scene {
 
         // Adds a 2 second pause before movement begins, to add yelling policeman voice
         if (this.restartGameTime > 0) {
-            if (this.t - this.restartGameTime < 2) {
+            if (this.t - this.restartGameTime < 3) {
                 this.gt = 0;
                 this.gdt = 0;
             } else {
-                this.gt = this.t - this.restartGameTime - 2;
+                this.gt = this.t - this.restartGameTime - 3;
                 this.gdt = this.dt;
             }
         } else {
