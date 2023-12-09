@@ -1,4 +1,4 @@
-# Project Report: Urban Skateboarding Escape Game
+# Project Report: Skate Escape
 
 ## Team Members
 
@@ -11,6 +11,7 @@
   - Light post creation and spawning.
   - Sidewalk creation and texturing.
   - Modification of obstacle models.
+  - and more...
 
 ### Varun Kumar
 - **Email**: vvkumar1@ucla.edu
@@ -22,6 +23,7 @@
   - Implementation of jumping skater animation.
   - Adding left/right movement and jumping ability to the skater.
   - Designing obstacle models.
+  - and more...
 
 ### Abhishek Karnik
 - **Email**: abhishekkarnik@ucla.edu
@@ -32,40 +34,43 @@
   - Initial obstacle placement.
   - Implementing skater tilt during side-to-side movements.
   - Integration of police and skater models with game pause feature at the beginning.
+  - and more...
 
 ## Project Overview
 
 ### Goal
-The Urban Skateboarding Escape Game is a 3D adventure where players control a rebellious skateboarder outrunning a cop in a non-skating zone. Set in an urban landscape filled with various obstacles, the game offers an immersive experience.
+Skate Escape is a thrilling 3D adventure set in a vibrant urban landscape. Players assume the role of a daring skateboarder who must navigate through a city while being chased by a police officer. The game's goal is to evade capture, dodge obstacles, and survive as long as possible in a dynamic environment that tests reflexes and agility.
 
 ### Features
-- Dynamic obstacle avoidance.
-- Increasing difficulty with game pace.
-- Detailed textures for immersive environment.
-- Advanced graphics using shading techniques.
-- Realistic lighting effects.
-- Efficient rendering of visible objects only.
-- Randomized obstacle placement for unpredictability.
-- Four different building textures for variety.
-- Custom skater model for detailed animations.
-- Collision Detection (Advanced Feature)
+- **Dynamic Obstacle Avoidance**: Players must skillfully navigate around various obstacles, including barricades, stacks of tires, and traffic cones, each offering unique challenges.
+- **Progressive Difficulty**: The game's pace intensifies over time, requiring players to adapt quickly to the increasing speed and more frequent obstacles.
+- **Detailed Environment**: The game world features richly textured surfaces, including roads, sidewalks, and buildings, enhancing the player's immersion.
+- **Advanced Shading**: Utilizing shading techniques like Phong, Gouraud, and Flat shading, the game achieves a realistic and visually appealing look.
+- **Realistic Lighting Effects**: The game implements dynamic lighting, highlighting specular and ambient effects to enhance realism.
+- **Efficient Rendering**: The game optimizes performance by rendering only visible objects, repurposing objects outside the player’s view.
+- **Randomized Obstacle Placement**: Obstacles appear randomly, ensuring each game session offers a new experience.
+- **Diverse Building Textures**: Players will encounter buildings with four different textures, adding variety to the urban landscape.
+- **Custom Human Model**: A meticulously designed skater and cop model allows for detailed animations, especially during jumps and maneuvers.
 
-### Operation and Controls
-- ‘Q’ to move left, ‘E’ to move right.
-- ‘T’ to jump.
-- ‘G’ to restart the game.
+### Collision Detection (Advanced Feature)
+- The game incorporates a sophisticated collision detection system to determine interactions between the skater, obstacles, and the pursuing police officer. It first calculates the distance between the skater and the obstacles. If the distance is less than a certain threshold, it is determined to be a collision. 
 
-### Scoring and Levels
-- Points based on distance without collisions.
-- Progressive speed increases for difficulty.
+## Operation and Controls
+- **Movement**: Press ‘Q’ to move left and ‘E’ to move right, enabling players to dodge obstacles.
+- **Jump**: Press ‘T’ to perform a jump, crucial for avoiding certain obstacles.
+- **Restart**: Press ‘G’ to restart the game, which is especially useful after a collision or to start a new game.
 
-### Sound Effects
-- Background music for an engaging atmosphere.
+## Scoring and Levels
+- **Scoring**: Points are awarded based on the distance traveled without colliding. This encourages players to focus on agility and quick reflexes.
+- **Difficulty Levels**: The game progressively becomes more challenging with speed increases.
 
-### Challenges
-- Managing object efficiency.
-- Collision detection implementation.
-- Creating realistic jumping animation.
+## Sound Effects
+- **Engaging Audio**: The game features an adrenaline-pumping soundtrack that complements the fast-paced nature of the gameplay.
+
+## Challenges
+- **Object Management**: A significant challenge was managing the game's objects efficiently to ensure smooth gameplay without performance issues.
+- **Collision Detection**: Implementing a reliable collision detection system was critical for the gameplay but posed technical difficulties.
+- **Animation Realism**: Creating a realistic jumping animation for the skater model was a complex task that required detailed attention to physics and human movement.
 
 ## Conclusion
-Skate Escape combines fast-paced gameplay, advanced graphics, and physics for an engaging player experience. It challenges players with quick decision-making and agility in an ever-changing urban setting.
+Skate Escape is not just a game; it's an exhilarating experience that combines fast-paced gameplay, advanced graphics, and physics. It's designed to challenge players with rapid decision-making and adaptability in an ever-changing urban environment. Each playthrough promises a unique experience, making Skate Escape a game that players will return to time and again.
